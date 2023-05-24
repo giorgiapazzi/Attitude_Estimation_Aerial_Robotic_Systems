@@ -102,4 +102,6 @@ log_vars = [];
 log_vars.accel = accelReading;
 log_vars.gyro = gyroReading;
 log_vars.mag = magReading;
+log_vars.initOrientation = initOrientation;
+log_vars.frequency = fs;
 save('dataset','log_vars');
