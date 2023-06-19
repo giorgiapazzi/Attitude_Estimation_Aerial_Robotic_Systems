@@ -43,25 +43,25 @@ angVelBody(startSecondInterval:endSecondInterval,3) = (pi/2)/3;    % turn left
 initPosition = [0,0,0]; % at time t=0 body RS and navigation RS overlap
 initVel = [0,0,0];  % at time t=0 the drone is stationary
 
-% Navigation reference system : NED (north-east-down)
 % Body reference system is rotated by -90° around z and 180° around y with
-% respect to the navigation reference system
+% respect to the navigation reference system (parametrization with
+% roll-pitch-yaw ZYX)
 
-% Orientation with quaternion:
-%initOrientation = quaternion([-90,180,0],'eulerd','zyx','frame');   % orientation of body RS wrt navigation RS
-
-% Orientation with matrix:
+% Orientation matrix (composition in local axes):
 yaw = -pi/2;
 pitch = pi;
 roll = 0;
 Rz = [  cos(yaw)    -sin(yaw)   0;
         sin(yaw)    cos(yaw)    0;
-        0           0           1]; % rotation around z axis
+        0           0           1];     % rotation around z axis
 Ry = [  cos(pitch)  0   sin(pitch);
         0           1   0;
         -sin(pitch) 0   cos(pitch)];    % rotation around y axis
-R = Rz*Ry;  % composition from left to right
-initOrientation = R;
+Rx = [1 0   0;
+        0   cos(roll)   sin(roll);
+        0   -sin(roll)  cos(roll)];     % rotation around x axis     
+R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from body frame to navigation frame
+initOrientation = inv(R);    % rotation matrix from navigation frame to body frame
 
 traj = kinematicTrajectory('SampleRate',fs,...
     'Velocity',initVel,...
@@ -103,5 +103,7 @@ log_vars.accel = accelReading;
 log_vars.gyro = gyroReading;
 log_vars.mag = magReading;
 log_vars.initOrientation = initOrientation;
+log_vars.orientation = orientationNED;
 log_vars.frequency = fs;
+log_vars.numSamples = totalNumSamples;
 save('dataset','log_vars');
