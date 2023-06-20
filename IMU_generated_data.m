@@ -70,7 +70,8 @@ traj = kinematicTrajectory('SampleRate',fs,...
 
 [~,orientationNED,~,accNED,angVelNED] = traj(accBody,angVelBody);
 
-%% Generate IMU data
+%% Generate IMU data without noise
+% Create an imuSensor object with ideal accelerometer, magnetometer and gyroscope.
 IMU = imuSensor('accel-gyro-mag','SampleRate',fs);
 [accelReading,gyroReading,magReading] = IMU(-accNED,angVelNED,orientationNED);
 
@@ -97,11 +98,67 @@ title('Magnetometer Readings')
 xlabel('Time (s)')
 ylabel('Magnetic Field (uT)')
 
+
+%% Generate IMU data with noise
+% Create an imuSensor object with realistic accelerometer, magnetometer and gyroscope.
+IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
+
+IMU.Accelerometer = accelparams( ...
+    'MeasurementRange',19.62, ...            % m/s^2
+    'Resolution',0.0023936, ...              % m/s^2 / LSB
+    'TemperatureScaleFactor',0.008, ...      % % / degree C
+    'ConstantBias',0.1962, ...               % m/s^2
+    'TemperatureBias',0.0014715, ...         % m/s^2 / degree C
+    'NoiseDensity',0.0012361);               % m/s^2 / Hz^(1/2)
+
+IMU.Magnetometer = magparams( ...
+    'MeasurementRange',1200, ...             % uT
+    'Resolution',0.1, ...                    % uT / LSB
+    'TemperatureScaleFactor',0.1, ...        % % / degree C
+    'ConstantBias',1, ...                    % uT
+    'TemperatureBias',[0.8 0.8 2.4], ...     % uT / degree C
+    'NoiseDensity',[0.6 0.6 0.9]/sqrt(100)); % uT / Hz^(1/2)
+
+IMU.Gyroscope = gyroparams( ...
+    'MeasurementRange',4.3633, ...
+    'Resolution',0.00013323, ...
+    'AxesMisalignment',2, ...
+    'NoiseDensity',8.7266e-05, ...
+    'TemperatureBias',0.34907, ...
+    'TemperatureScaleFactor',0.02, ...
+    'AccelerationBias',0.00017809, ...
+    'ConstantBias',[0.3491,0.5,0]);
+
+[accelReadingN,gyroReadingN,magReadingN] = IMU_Noise(-accNED,angVelNED,orientationNED);
+
+figure(2)
+subplot(3,1,1)
+plot(t,accelReadingN)
+legend('X-axis','Y-axis','Z-axis')
+title('Accelerometer Readings With Noise')
+ylabel('Acceleration (m/s^2)')
+
+subplot(3,1,2)
+plot(t,gyroReadingN)
+legend('X-axis','Y-axis','Z-axis')
+title('Gyroscope Readings With Noise')
+ylabel('Angular Velocity (rad/s)')
+
+subplot(3,1,3)
+plot(t,magReadingN)
+legend('X-axis','Y-axis','Z-axis')
+title('Magnetometer Readings With Noise')
+xlabel('Time (s)')
+ylabel('Magnetic Field (uT)')
+
 %% Load data in dataset
 log_vars = [];
 log_vars.accel = accelReading;
 log_vars.gyro = gyroReading;
 log_vars.mag = magReading;
+log_vars.accelN = accelReadingN;
+log_vars.gyroN = gyroReadingN;
+log_vars.magN = magReadingN;
 log_vars.initOrientation = initOrientation;
 log_vars.orientation = orientationNED;
 log_vars.frequency = fs;

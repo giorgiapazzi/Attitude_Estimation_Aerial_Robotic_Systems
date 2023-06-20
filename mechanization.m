@@ -2,9 +2,17 @@ clear all
 close all
 clc
 
-% Load IMU measures
+% Load data
 load('dataset')
+
 numSamples = log_vars.numSamples;
+R0 = log_vars.initOrientation;    % rotation matrix from navigation frame to body frame at time t=0
+R = log_vars.orientation; % rotation matrix from navigation frame to body frame for t>0         
+fs = log_vars.frequency;    % sensors frequency
+
+dt = 1/fs;  % sample time
+
+% Load IMU measures without noise
 accel_x = log_vars.accel(:,1);
 accel_y = log_vars.accel(:,2);
 accel_z = log_vars.accel(:,3);
@@ -14,11 +22,17 @@ angvel_z = log_vars.gyro(:,3);
 mag_x = log_vars.mag(:,1);
 mag_y = log_vars.mag(:,2);
 mag_z = log_vars.mag(:,3);
-R0 = log_vars.initOrientation;    % rotation matrix from navigation frame to body frame at time t=0
-R = log_vars.orientation; % rotation matrix from navigation frame to body frame for t>0         
-fs = log_vars.frequency;    % sensors frequency
 
-dt = 1/fs;  % sample time
+% Load IMU measures with noise
+accel_x_N = log_vars.accelN(:,1);
+accel_y_N = log_vars.accelN(:,2);
+accel_z_N = log_vars.accelN(:,3);
+angvel_x_N = log_vars.gyroN(:,1);
+angvel_y_N = log_vars.gyroN(:,2);
+angvel_z_N = log_vars.gyroN(:,3);
+mag_x_N = log_vars.magN(:,1);
+mag_y_N = log_vars.magN(:,2);
+mag_z_N = log_vars.magN(:,3);
 
 
 %% Initial attitude values
@@ -152,5 +166,3 @@ legend('Roll','Pitch','Yaw')
 title('Attitude estimation')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
-
-
