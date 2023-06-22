@@ -129,8 +129,8 @@ IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
 %     'AccelerationBias',0.00017809, ...
 %     'ConstantBias',[0.3491,0.5,0]);
 
-IMU_Noise.Gyroscope.NoiseDensity = 5e-04;   % add noise for gyro measurements
-IMU_Noise.Gyroscope.ConstantBias = [0.1, 0.1, 0.1];    % add a constant bias for gyro measurements
+IMU_Noise.Gyroscope.NoiseDensity = 5e-04;   % add white noise drift for gyro measurements
+IMU_Noise.Gyroscope.ConstantBias = [0.3, 0.3, 0.3];    % add a constant bias for gyro measurements (0.1 rad = 5.73°)
 
 [accelReadingN,gyroReadingN,magReadingN] = IMU_Noise(-accNED,angVelNED,orientationNED);
 
