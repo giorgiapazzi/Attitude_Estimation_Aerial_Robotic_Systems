@@ -7,9 +7,9 @@ load('dataset')
 
 numSamples = log_vars.numSamples;
 m_B = log_vars.mag';
-angvel_x = log_vars.gyro(:,1);
-angvel_y = log_vars.gyro(:,2);
-angvel_z = log_vars.gyro(:,3);
+angvel_x = log_vars.gyroN(:,1);
+angvel_y = log_vars.gyroN(:,2);
+angvel_z = log_vars.gyroN(:,3);
 fs = log_vars.frequency;    % sensors frequency
 
 dt = 1/fs;  % sample time
@@ -18,7 +18,7 @@ R0 = log_vars.initOrientation;    % rotation matrix from navigation frame to bod
 R = log_vars.orientation; % rotation matrix from navigation frame to body frame for t>0 
 
 R = cat(3,R0,R);    % concatenate rotation matrix in one single multidimensional array
-g = -9.81;   % gravity acceleration
+g = 9.81;   % gravity acceleration
 e3 = [0;0;1];
 u_I = e3;
 m_I = [27.5550;-2.4169;-16.08049];  % magnetic field in navigation frame 
@@ -31,19 +31,21 @@ pitch_0 = atan2(-R0(3,1),-sqrt((R0(3,2))^2 + (R0(3,3))^2));
 roll_0 = atan2(-R0(3,2),-R0(3,3));
 
 % Positive constant gains
-k1 = 500;
-k2 = 500;
-kb = 500;
+k1 = 0.1;
+k2 = 0.1;
+kb = 0.1;
 
 R_pred = zeros(3,3,numSamples+1);
-R_pred(:,:,1) = R0;
-b_omega = [0.3; 0.3; 0.3];  % initial constant gyro bias
+std_dev_R = 1e-03;
+R_pred(:,:,1) = R0 + std_dev_R * ones(3,3) * randn(3,1);
+std_dev_b = 1e-3;
+b_omega = [0.01; 0.01; 0.005] + std_dev_b * randn(3,1);  % initial constant gyro bias
 attitude_angles = zeros(numSamples+1,3);
 attitude_angles(1,:)= [roll_0,pitch_0,yaw_0];
 
 %% Explicit complementary filter
 for i = 1 : (numSamples)
-    a_B = -g * R(:,:,i)' * e3;   % approximation of accelerometer measurements
+    a_B = R(:,:,i)' * (g .* e3);   % approximation of accelerometer measurements
     u_B = -a_B./g;
     m_B_norm = m_B(:,i)/norm(m_I);
 
@@ -75,6 +77,17 @@ for i = 1 : (numSamples)
     yaw_dot = sin(roll)/cos(pitch) * omega_y + cos(roll)/cos(pitch) * omega_z;
     attitude_angles(i+1,3) = attitude_angles(i,3) + yaw_dot*dt;
     attitude_angles(i+1,3) = wrapTo2Pi(attitude_angles(i+1,3));
+
+    Rz = [  cos(attitude_angles(i+1,3))     -sin(attitude_angles(i+1,3))    0;
+            sin(attitude_angles(i+1,3))     cos(attitude_angles(i+1,3))     0;
+            0                               0                               1];     % rotation around z axis
+    Ry = [  cos(attitude_angles(i+1,2))     0   sin(attitude_angles(i+1,2));
+            0                               1   0;
+            -sin(attitude_angles(i+1,2))    0   cos(attitude_angles(i+1,2))];    % rotation around y axis
+    Rx = [  1       0                               0;
+            0       cos(attitude_angles(i+1,1))     sin(attitude_angles(i+1,1));
+            0       -sin(attitude_angles(i+1,1))    cos(attitude_angles(i+1,1))];     % rotation around x axis     
+    R_pred(:,:,i+1) = Rz*Ry*Rx; % composition from left to right: rotation matrix from body frame to navigation frame
        
 end
 
@@ -92,6 +105,18 @@ legend('Roll','Pitch','Yaw')
 title('Attitude estimation')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
+
+figure(2)
+plot(t,b_omega(1,:))
+hold on
+plot(t,b_omega(2,:))
+hold on
+plot(t,b_omega(3,:))
+legend('x-bias','y-bias','z-bias')
+title('Gyro bias estimation')
+xlabel('t [s]')
+ylabel('Gyro bias [rad]')
+
 
 
 
