@@ -6,17 +6,22 @@ clc
 load('dataset')
 
 numSamples = log_vars.numSamples;
-m_B = log_vars.mag';
-angvel_x = log_vars.gyroN(:,1);
-angvel_y = log_vars.gyroN(:,2);
-angvel_z = log_vars.gyroN(:,3);
+m_B = log_vars.mag';    % magnetometer measurements 
+angvel_x = log_vars.gyroN(:,1); % gyro measurements along x-axis
+angvel_y = log_vars.gyroN(:,2); % gyro measurements along y-axis
+angvel_z = log_vars.gyroN(:,3); % gyro measurements along z-axis
+acc = log_vars.accelN'; % accelerometer measurements
 fs = log_vars.frequency;    % sensors frequency
+constantBias = log_vars.gyrobias;   % true constant gyro bias
+true_attitude_angles = log_vars.trueAttitudeAngles; % attitude angles computed with true machanization
 
 dt = 1/fs;  % sample time
 
 R0 = log_vars.initOrientation;    % rotation matrix from navigation frame to body frame at time t=0
-R = log_vars.orientation; % rotation matrix from navigation frame to body frame for t>0 
+R = log_vars.orientation;   % rotation matrix from navigation frame to body frame for t>0 
 
+std_dev_R = 1e-03;  % standard deviation for initial rotation matrix
+R0 = R0 + std_dev_R * ones(3,3) * randn(3,1);   % initial rotation matrix with uncertainty
 R = cat(3,R0,R);    % concatenate rotation matrix in one single multidimensional array
 g = 9.81;   % gravity acceleration
 e3 = [0;0;1];
@@ -30,22 +35,24 @@ yaw_0 = atan2(-R0(2,1),-R0(1,1));
 pitch_0 = atan2(-R0(3,1),-sqrt((R0(3,2))^2 + (R0(3,3))^2));
 roll_0 = atan2(-R0(3,2),-R0(3,3));
 
-% Positive constant gains
-k1 = 0.1;
-k2 = 0.1;
-kb = 0.1;
-
 R_pred = zeros(3,3,numSamples+1);
-std_dev_R = 1e-03;
-R_pred(:,:,1) = R0 + std_dev_R * ones(3,3) * randn(3,1);
-std_dev_b = 1e-3;
-b_omega = [0.01; 0.01; 0.005] + std_dev_b * randn(3,1);  % initial constant gyro bias
+R_pred(:,:,1) = R0;
+
+std_dev_b = 1e-3;   % standard deviation for white noise for initial gyro bias
+b_omega = [0.01; 0.01; 0.005] + std_dev_b * randn(3,1);  % initial constant gyro bias with uncertainty
+
 attitude_angles = zeros(numSamples+1,3);
 attitude_angles(1,:)= [roll_0,pitch_0,yaw_0];
 
+% Positive constant gains
+k1 = 0.18;  % 0.18
+k2 = 0.18;  % 0.18
+kb = 0.15;  % 0.15
+
 %% Explicit complementary filter
 for i = 1 : (numSamples)
-    a_B = R(:,:,i)' * (g .* e3);   % approximation of accelerometer measurements
+    %a_B = R(:,:,i)' * (g .* e3);   % approximation of accelerometer measurements
+    a_B = acc(:,i);
     u_B = -a_B./g;
     m_B_norm = m_B(:,i)/norm(m_I);
 
@@ -57,6 +64,7 @@ for i = 1 : (numSamples)
 
     b_omega_dot = sigma_b;
     b_omega(:,i+1) = b_omega(:,i) + b_omega_dot*dt;
+    disp(b_omega(:,i+1))
 
     roll = attitude_angles(i,1);
     pitch = attitude_angles(i,2);
@@ -106,7 +114,24 @@ title('Attitude estimation')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
 
+for i=1 : (numSamples+1)
+    error_roll(i) = true_attitude_angles(i,1) - attitude_angles(i,1);
+    error_pitch(i) = true_attitude_angles(i,2) - attitude_angles(i,2);
+    error_yaw(i) = true_attitude_angles(i,3) - attitude_angles(i,3);
+end
+
 figure(2)
+plot(t,error_roll)
+hold on
+plot(t,error_pitch)
+hold on
+plot(t,error_yaw)
+legend('Roll Error','Pitch Error','Yaw Error')
+title('Attitude estimation error')
+xlabel('t [s]')
+ylabel('Roll-pitch-yaw angles error [rad]')
+
+figure(3)
 plot(t,b_omega(1,:))
 hold on
 plot(t,b_omega(2,:))
@@ -117,6 +142,13 @@ title('Gyro bias estimation')
 xlabel('t [s]')
 ylabel('Gyro bias [rad]')
 
-
-
-
+figure(4)
+plot(t,(b_omega(1,:)-constantBias(1)))
+hold on
+plot(t,(b_omega(2,:)-constantBias(2)))
+hold on
+plot(t,(b_omega(3,:)-constantBias(3)))
+legend('x-bias error','y-bias error','z-bias error')
+title('Gyro bias estimation error')
+xlabel('t [s]')
+ylabel('Gyro bias error [rad]')

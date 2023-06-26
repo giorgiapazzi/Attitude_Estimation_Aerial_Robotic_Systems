@@ -228,3 +228,8 @@ legend('Roll Error','Pitch Error','Yaw Error')
 title('Attitude estimation error')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles error [rad]')
+
+
+%% Load data in dataset
+log_vars.trueAttitudeAngles = true_attitude_angles;
+save('dataset','log_vars');

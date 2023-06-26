@@ -129,8 +129,10 @@ IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
 %     'AccelerationBias',0.00017809, ...
 %     'ConstantBias',[0.3491,0.5,0]);
 
-IMU_Noise.Gyroscope.NoiseDensity = 5e-04;   % add white noise drift for gyro measurements
-IMU_Noise.Gyroscope.ConstantBias = [0.01, 0.01, 0.005];    % add a constant bias for gyro measurements (https://www.ericcointernational.com/inertial-measurement-units)
+noiseDensity = 5e-04;   % gyro white noise drift
+constantBias = [0.01, 0.01, 0.005]; % gyro constant bias 
+IMU_Noise.Gyroscope.NoiseDensity = noiseDensity;   % add white noise drift for gyro measurements
+IMU_Noise.Gyroscope.ConstantBias = constantBias;    % add a constant bias for gyro measurements (https://www.ericcointernational.com/inertial-measurement-units)
 
 [accelReadingN,gyroReadingN,magReadingN] = IMU_Noise(-accNED,angVelNED,orientationNED);
 
@@ -169,4 +171,5 @@ log_vars.initOrientation = initOrientation;
 log_vars.orientation = orientationNED;
 log_vars.frequency = fs;
 log_vars.numSamples = totalNumSamples;
+log_vars.gyrobias = constantBias;
 save('dataset','log_vars');
