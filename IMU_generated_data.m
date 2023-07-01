@@ -60,7 +60,8 @@ Ry = [  cos(pitch)  0   sin(pitch);
 Rx = [1 0   0;
         0   cos(roll)   sin(roll);
         0   -sin(roll)  cos(roll)];     % rotation around x axis     
-R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from body frame to navigation frame
+%R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from body frame to navigation frame
+R = Rx' * Ry' * Rz';    % composition from right to left: rotation matrix from body frame to navigation frame
 initOrientation = inv(R);    % rotation matrix from navigation frame to body frame
 
 traj = kinematicTrajectory('SampleRate',fs,...

@@ -64,7 +64,7 @@ for i = 1 : (numSamples)
 
     b_omega_dot = sigma_b;
     b_omega(:,i+1) = b_omega(:,i) + b_omega_dot*dt;
-    disp(b_omega(:,i+1))
+    %disp(b_omega(:,i+1))
 
     roll = attitude_angles(i,1);
     pitch = attitude_angles(i,2);
