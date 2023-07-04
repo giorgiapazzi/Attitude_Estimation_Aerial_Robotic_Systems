@@ -45,14 +45,14 @@ attitude_angles = zeros(numSamples+1,3);
 attitude_angles(1,:)= [roll_0,pitch_0,yaw_0];
 
 % Positive constant gains
-k1 = 0.18;  % 0.18
-k2 = 0.18;  % 0.18
-kb = 0.15;  % 0.15
+k1 = 0.18;  
+k2 = 0.18;  
+kb = 0.15;  
 
 %% Explicit complementary filter
 for i = 1 : (numSamples)
-    %a_B = R(:,:,i)' * (g .* e3);   % approximation of accelerometer measurements
-    a_B = acc(:,i);
+    a_B = R(:,:,i)' * (g .* e3);   % approximation of accelerometer measurements
+    %a_B = acc(:,i);
     u_B = -a_B./g;
     m_B_norm = m_B(:,i)/norm(m_I);
 
