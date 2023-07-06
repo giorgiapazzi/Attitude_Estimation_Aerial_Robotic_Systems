@@ -4,187 +4,132 @@ clc
 
 %% Trajectory generation
 % The drone makes a vertical take off and moves with small accelerations
-fs = 100;   % Hz
-selectTrajectory = 2;   % write the number of the trajectory to use
 
-if selectTrajectory == 1
-    disp('First trajectory selected')
+selectTraj = 1;
+fs = 100;   % Hz samples per second
+
+if selectTraj == 1 
     % First trajectory: 73 seconds of flight
-    % The drone moves in vertical in 5 s and then rotates 90° in 3 s.
-    % It then moves forward for 60 seconds with an acceleration of 0.5 m/s^2
-    % and performs a vertical landing with the same acceleration of the take
-    % off.
-    firstLoopSamples = fs*5;    % 500 measurements for the first 5 seconds
-    secondLoopSamples = fs*3;   % 300 measurements for the next 3 seconds
-    thirdLoopSamples = fs*60;   % 6000 measurements for the next 60 seconds
-    fourthLoopSamples = fs*5;   % 500 measurements for the final seconds of the trajectory
+    % The drone moves in vertical for 1 m in 2.5 s and then rotates 90° in 3 s.
+    % It then moves forward for 60 seconds
+    % and performs a vertical landing with the same acceleration of the take off.
+    firstLoopSamples = fs*5;    % 500 measures for the first 5 seconds
+    secondLoopSamples = fs*3;   % 300 measures for the next 3 seconds
+    thirdLoopSamples = fs*60;   % 6000 measures for the next 60 seconds
+    fourthLoopSamples = fs*5;   % 500 measures for the final seconds of the trajectory
     totalNumSamples = firstLoopSamples + secondLoopSamples + thirdLoopSamples + fourthLoopSamples;
     
-    % First interval and second interval: take off acceleration and deceleration
     startFirstInterval = 1;
-    endFirstInterval = fix((startFirstInterval + firstLoopSamples) / 2);
-    startSecondInterval = endFirstInterval + 1;
-    endSecondInterval = startSecondInterval + fix((startFirstInterval + firstLoopSamples) / 2) - 1;
-    % Third interval: turn left
+    endFirstInterval = firstLoopSamples/2;
+    startSecondInterval = endFirstInterval+1;
+    endSecondInterval = startSecondInterval + firstLoopSamples/2 - 1;
     startThirdInterval = endSecondInterval + 1;
     endThirdInterval = startThirdInterval + secondLoopSamples - 1;
-    % Fourth and fifth interval: forward acceleration
     startFourthInterval = endThirdInterval + 1;
     endFifthInterval = startFourthInterval + thirdLoopSamples - 1;
-    endFourthInterval = fix((startFourthInterval + endFifthInterval) / 2);
+    endFourthInterval = fix((startFourthInterval + endFifthInterval)/2);
     startFifthInterval = endFourthInterval + 1;
-    % Sixth and seventh interval: landing acceleration and deceleration
     startSixthInterval = endFifthInterval + 1;
     endSeventhInterval = startSixthInterval + fourthLoopSamples - 1;
-    endSixthInterval = fix((startSixthInterval + endSeventhInterval) / 2);
+    endSixthInterval = fix((startSixthInterval + endSeventhInterval)/2);
     startSeventhInterval = endSixthInterval + 1;
-
-%     disp(startFirstInterval)
-%     disp(endFirstInterval)
-%     disp(startSecondInterval)
-%     disp(endSecondInterval)
-%     disp(startThirdInterval)
-%     disp(endThirdInterval)
-%     disp(startFourthInterval)
-%     disp(endFourthInterval)
-%     disp(startFifthInterval)
-%     disp(endFifthInterval)
-%     disp(startSixthInterval)
-%     disp(endSixthInterval)
-%     disp(startSeventhInterval)
-%     disp(endSeventhInterval)
-
-
-    % We assume that the reference system for the drone in equal to the NWU
-    % (north-west-up) at the initial time t = 0.
+    
+    % We assume that the reference system for the drone in equal to the ENU
+    % (east-north-up) at the initial time t = 0.
     
     % Body linear acceleration
     accBody = zeros(totalNumSamples,3);
-    accBody(startFirstInterval:endFirstInterval,3) = 0.2;     % vertical take off: acceleration
-    accBody(startSecondInterval:endSecondInterval,3) = -0.2;  % deceleration to have velocity = 0 at the end of the take off
-    accBody(startFourthInterval:endFourthInterval,1) = 0.3;     % forward movement: acceleration
-    accBody(startFifthInterval:endFifthInterval,1) = -0.3;  % forward movement: deceleration
-    accBody(startSixthInterval:endSixthInterval,3) = -0.2;  % vertical landing: acceleration
-    accBody(startSeventhInterval:endSeventhInterval,3) = 0.2; % vertical landing: deceleration
+    accBody(startFirstInterval:endFirstInterval,3) = 0.5;    % vertical take off
+    accBody(startSecondInterval:endSecondInterval,3) = -0.5;
+    accBody(startFourthInterval:endFourthInterval,1) = 0.005;  % forward movement
+    accBody(startFifthInterval:endFifthInterval,1) = -0.005;
+    accBody(startSixthInterval:endSixthInterval,3) = -0.5;  % vertical landing
+    accBody(startSeventhInterval:endSeventhInterval,3) = 0.5;
     
     % Velocità angolare body
     angVelBody = zeros(totalNumSamples,3);
-    angVelBody(startSecondInterval:endSecondInterval,3) = (pi/2)/3; % turn left
+    angVelBody(startThirdInterval:endThirdInterval,3) = (pi/2)/3;    % turn left
 
-elseif selectTrajectory == 2
-    disp('Second trajectory selected')
-    % Second trajectory: 
-    % Vertical take off
-    firstLoopSamples = fs*5;    % 500 measurements for the first 5 seconds
-    % Turn left (yaw angle)
-    secondLoopSamples = fs*3;   % 300 measurements for the next 3 seconds
-    % Forward tilt (roll angle) + forward movement
-    thirdLoopSamples = fs*30;    % 3000 measurements for the next 30 seconds
-    % Backward tilt (roll angle) + forward movement
-    fourthLoopSamples = fs*30;    % 3000 measurements for the next 30 seconds
-    % Rightward tilt (pitch angle) + rotation around z-axis (yaw angle) + forward motion
-    fifthLoopSamples = fs*30;   % 3000 measurements for the next 30 seconds
-    % Turn rigth (yaw angle)
-    sixthLoopSamples = fs*3;  % 300 measurements for the first 3 seconds
-    % Landing
-    seventhLoopSamples = fs*5;  % 500 measurements for the first 5 seconds
-    totalNumSamples = firstLoopSamples + secondLoopSamples + thirdLoopSamples + fourthLoopSamples + ...
-                        fifthLoopSamples + sixthLoopSamples + seventhLoopSamples;
-    
-    % First and second intervals: take off acceleration and deceleration
+elseif selectTraj == 2
+    % Second trajectory
+    takeoffSamples = fs*3;    % vertical take off
+    landingSaples = fs*3;   % vertical landing
+    totalNumSamples = 8000; % 80 seconds of flight
+
     startFirstInterval = 1;
-    endFirstInterval = fix((startFirstInterval + firstLoopSamples) / 2);
+    endFirstInterval = takeoffSamples/2;
     startSecondInterval = endFirstInterval + 1;
-    endSecondInterval = startSecondInterval + fix((startFirstInterval + firstLoopSamples) / 2) - 1;
-    % Third interval: turn left (yaw angle)
-    startThirdInterval = endSecondInterval + 1;
-    endThirdInterval = startThirdInterval + secondLoopSamples - 1;
-    % Fourth and fifth intervals: forward tilt (pitch angle)  + forward movement acceleration
+    endSecondInterval = startSecondInterval + takeoffSamples/2 - 1;
+    startThirdInterval = totalNumSamples - landingSaples + 1;
+    endFourthInterval = totalNumSamples;
+    endThirdInterval = fix((startThirdInterval + endFourthInterval)/2);
     startFourthInterval = endThirdInterval + 1;
-    endFifthInterval = startFourthInterval + thirdLoopSamples - 1;
-    endFourthInterval = fix((startFourthInterval + endFifthInterval) / 2);
-    startFifthInterval = endFourthInterval + 1;
-    % Sixth and seventh intervals: backward tilt (pitch angle) + forward movement deceleration
-    startSixthInterval = endFifthInterval + 1;
-    endSeventhInterval = startSixthInterval + fourthLoopSamples - 1;
-    endSixthInterval = fix((startSixthInterval + endSeventhInterval) / 2);
-    startSeventhInterval = endSixthInterval + 1;
-    % Eighth and ninth intervals: rightward tilt (roll angle) + rotation around z-axis (yaw angle) + forward motion
-    startEighthInterval = endSeventhInterval + 1;
-    endNinthInterval = startEighthInterval + fifthLoopSamples - 1;
-    endEighthInterval = fix((startEighthInterval + endNinthInterval) / 2);
-    startNinthInterval = endEighthInterval + 1;
-    % Tenth interval: turn rigth (yaw angle)
-    startTenthInterval = endNinthInterval + 1;
-    endTenthInterval = startTenthInterval + sixthLoopSamples - 1;
-    % Eleventh and twelfth intervals: landing
-    startEleventhInterval = endTenthInterval + 1;
-    endTwelfthInterval = startEleventhInterval + seventhLoopSamples - 1;
-    endEleventhInterval = fix((startEleventhInterval + endTwelfthInterval) / 2);
-    startTwelfthInterval = endEleventhInterval + 1;
 
-%     disp(startFirstInterval)
-%     disp(endFirstInterval)
-%     disp(startSecondInterval)
-%     disp(endSecondInterval)
-%     disp(startThirdInterval)
-%     disp(endThirdInterval)
-%     disp(startFourthInterval)
-%     disp(endFourthInterval)
-%     disp(startFifthInterval)
-%     disp(endFifthInterval)
-%     disp(startSixthInterval)
-%     disp(endSixthInterval)
-%     disp(startSeventhInterval)
-%     disp(endSeventhInterval)
-%     disp(startEighthInterval)
-%     disp(endEighthInterval)
-%     disp(startNinthInterval)
-%     disp(endNinthInterval)
-%     disp(startTenthInterval)
-%     disp(endTenthInterval)
-%     disp(startEleventhInterval)
-%     disp(endEleventhInterval)
-%     disp(startTwelfthInterval)
-%     disp(endTwelfthInterval)
-
-    
-    % Body linear acceleration
     accBody = zeros(totalNumSamples,3);
-    accBody(startFirstInterval:endFirstInterval,3) = 0.2;   % take off acceleration
-    accBody(startSecondInterval:endSecondInterval,3) = -0.2;   % take off deceleration
-    accBody(startFourthInterval:endFourthInterval,1) = 0.10; % forward acceleration
-    accBody(startSeventhInterval:endSeventhInterval,1) = -0.10; % forward deceleration
-    accBody(startEighthInterval:endEighthInterval,1) = 0.10; % forward acceleration
-    accBody(startNinthInterval:endNinthInterval,1) = -0.10;  % forward deceleration
-    accBody(startEleventhInterval:endEleventhInterval,3) = -0.2;    % landing acceleration
-    accBody(startTwelfthInterval:endTwelfthInterval,3) = 0.2;   % landing deceleration
+    accBody(startFirstInterval:endFirstInterval,3) = 0.7;
+    accBody(startSecondInterval:endSecondInterval,3) = -0.7;
+    accBody(startThirdInterval:endThirdInterval,3) = -0.7;
+    accBody(startFourthInterval:endFourthInterval,3) = 0.7;
+    accBody(endSecondInterval+1:endSecondInterval+200,1) = 0.01;
 
-    
-    % Velocità angolare body
+    % Sine wave signal for rotation around X-axis:
+    dt = 1/fs;  % second per sample
+    stopTime = 74;
+    t = (0:dt:stopTime-dt);
+    Fc = 0.001;
+    roll = (pi/6)*sin(2*pi*Fc*t);
+%     % Plot the signal versus time:
+%     figure;
+%     plot(t,roll);
+%     xlabel('time (in seconds)');
+%     title('Signal versus Time');
+%     zoom xon;
+
+    % Sine wave signal for rotation around Y-axis:
+    dt = 1/fs;  % second per sample
+    stopTime = 74;
+    t = (0:dt:stopTime-dt);
+    Fc = 0.05;
+    pitch = -(pi/4/10)*sin(2*pi*Fc*t);
+    %Plot the signal versus time:
+    figure(10);
+    plot(t,pitch);
+    xlabel('time (in seconds)');
+    title('Signal versus Time');
+    zoom xon;
+
+    % Sine wave signal for rotation around Z-axis:
+    dt = 1/fs;  % second per sample
+    stopTime = 74;
+    t = (0:dt:stopTime-dt);
+    Fc = 0.005;
+    yaw = (pi/2 / 3)*sin(2*pi*Fc*t);
+%     % Plot the signal versus time:
+%     figure;
+%     plot(t,yaw);
+%     xlabel('time (in seconds)');
+%     title('Signal versus Time');
+%     zoom xon;
+
     angVelBody = zeros(totalNumSamples,3);
-    angVelBody(startThirdInterval:endThirdInterval,3) = (pi/2)/3;   % turn left
-    angVelBody(startFourthInterval:endFourthInterval,2) = -(pi/4) / 15; % -5° inclination around y-axis in 15 seconds
-    angVelBody(startFifthInterval:endFifthInterval,2) = (pi/4) / 15; % 5° inclination around y-axis in 15 seconds
-    angVelBody(startSixthInterval:endSixthInterval,2) = (pi/4) / 15; % 5° inclination around y-axis in 15 seconds
-    angVelBody(startSeventhInterval:endSeventhInterval,2) = -(pi/4) / 15; % -5° inclination around y-axis in 15 seconds
-    angVelBody(startEighthInterval:endEighthInterval,1) = (pi/4) / 15;  % 45° inclination around x-axis in 15 seconds  
-    angVelBody(startNinthInterval:endNinthInterval,1) = -(pi/4) / 15;  % -45° inclination around x-axis in 15 seconds
-    angVelBody(startEighthInterval:endNinthInterval,3) = -(pi/2) / 30; % turn right
-    angVelBody(startTenthInterval:endTenthInterval,3) = -(pi/2) / 3;  % turn right
+    %angVelBody(endSecondInterval+1:startThirdInterval-1,1) = roll';
+    angVelBody(endSecondInterval+1:startThirdInterval-1,2) = pitch';
+    %angVelBody(endSecondInterval+1:startThirdInterval-1,3) = yaw';
 end
+
 
 % Definition of kinematicTrajectory object
 initPosition = [0,0,0]; % at time t=0 body RS and navigation RS overlap
 initVel = [0,0,0];  % at time t=0 the drone is stationary
 
-% Body reference system is rotated by 180° around x and 180° with respect to 
-% the navigation reference system (parametrization with roll-pitch-yaw ZYX)
+% Body reference system is rotated by -90° around z and 180° around y with
+% respect to the navigation reference system (parametrization with
+% roll-pitch-yaw ZYX)
 
 % Orientation matrix (composition in local axes):
-yaw = 0;
-pitch = 0;
-roll = pi;
+yaw = -pi/2;
+pitch = pi;
+roll = 0;
 Rz = [  cos(yaw)    -sin(yaw)   0;
         sin(yaw)    cos(yaw)    0;
         0           0           1];     % rotation around z axis
@@ -194,16 +139,16 @@ Ry = [  cos(pitch)  0   sin(pitch);
 Rx = [1 0   0;
         0   cos(roll)   sin(roll);
         0   -sin(roll)  cos(roll)];     % rotation around x axis     
-%R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from body frame to navigation frame
-R = Rx' * Ry' * Rz';    % composition from right to left: rotation matrix from body frame to navigation frame
-initOrientation = inv(R);    % rotation matrix from navigation frame to body frame
+%R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from navigation frame to body frame
+R = Rx' * Ry' * Rz';    % composition from right to left: rotation matrix from navigation frame to body frame
+initOrientation = R;    % rotation matrix from navigation frame to body frame
 
 traj = kinematicTrajectory('SampleRate',fs,...
     'Velocity',initVel,...
     'Position',initPosition,...
     'Orientation',initOrientation);
 
-[position,orientationNED,velocity,accNED,angVelNED] = traj(accBody,angVelBody);
+[position,orientationNED,~,accNED,angVelNED] = traj(accBody,angVelBody);
 
 % Plot the trajectory in navigation frame (NED frame)
 t = (0:(totalNumSamples-1))/fs;
@@ -217,7 +162,16 @@ title('Position')
 grid on
 
 figure(2)
+plot(t,position(:,1))
+hold on
+plot(t,position(:,2))
+hold on
 plot(t,position(:,3))
+xlabel('Time (s)')
+ylabel('Space (m)')
+title('Position')
+legend('X-axis','Y-axis','Z-axis')
+grid on
 
 %% Generate IMU data without noise
 % Create an imuSensor object with ideal accelerometer, magnetometer and gyroscope.
@@ -227,7 +181,7 @@ IMU = imuSensor('accel-gyro-mag','SampleRate',fs);
 % Plot the accelerometer readings, gyroscope readings, and magnetometer readings.
 t = (0:(totalNumSamples-1))/IMU.SampleRate;
 
-figure(2)
+figure(3)
 subplot(3,1,1)
 plot(t,accelReading)
 legend('X-axis','Y-axis','Z-axis')
@@ -278,8 +232,9 @@ IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
 %     'AccelerationBias',0.00017809, ...
 %     'ConstantBias',[0.3491,0.5,0]);
 
-noiseDensity = 5e-04;   % gyro white noise drift
-constantBias = [0.01, 0.01, 0.005]; % gyro constant bias [rad]
+noiseDensity = 1e-05;   % gyro white noise drift
+%constantBias = [0.01, 0.01, 0.005]; % gyro constant bias 
+constantBias = [1e-03, 1e-03, 5e-04];
 IMU_Noise.Gyroscope.NoiseDensity = noiseDensity;   % add white noise drift for gyro measurements
 IMU_Noise.Gyroscope.ConstantBias = constantBias;    % add a constant bias for gyro measurements (https://www.ericcointernational.com/inertial-measurement-units)
 
@@ -288,7 +243,7 @@ IMU_Noise.Gyroscope.ConstantBias = constantBias;    % add a constant bias for gy
 % Plot the accelerometer readings, gyroscope readings, and magnetometer readings.
 t = (0:(totalNumSamples-1))/IMU_Noise.SampleRate;
 
-figure(3)
+figure(4)
 subplot(3,1,1)
 plot(t,accelReadingN)
 legend('X-axis','Y-axis','Z-axis')
@@ -316,8 +271,11 @@ log_vars.mag = magReading;
 log_vars.accelN = accelReadingN;
 log_vars.gyroN = gyroReadingN;
 log_vars.magN = magReadingN;
-log_vars.initOrientation = initOrientation;
-log_vars.orientation = orientationNED;
+log_vars.initOrientation = initOrientation';
+for i=1 : totalNumSamples
+    orientationBODY(:,:,i) = orientationNED(:,:,i)';
+end
+log_vars.orientation = orientationBODY;
 log_vars.frequency = fs;
 log_vars.numSamples = totalNumSamples;
 log_vars.gyrobias = constantBias;
