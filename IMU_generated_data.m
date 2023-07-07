@@ -52,15 +52,15 @@ if selectTraj == 1
 
 elseif selectTraj == 2
     % Second trajectory
-    takeoffSamples = fs*3;    % vertical take off
-    landingSaples = fs*3;   % vertical landing
+    takeoffSamples = fs*5;    % vertical take off
+    landingSamples = fs*5;   % vertical landing
     totalNumSamples = 8000; % 80 seconds of flight
 
     startFirstInterval = 1;
     endFirstInterval = takeoffSamples/2;
     startSecondInterval = endFirstInterval + 1;
     endSecondInterval = startSecondInterval + takeoffSamples/2 - 1;
-    startThirdInterval = totalNumSamples - landingSaples + 1;
+    startThirdInterval = totalNumSamples - landingSamples + 1;
     endFourthInterval = totalNumSamples;
     endThirdInterval = fix((startThirdInterval + endFourthInterval)/2);
     startFourthInterval = endThirdInterval + 1;
@@ -70,14 +70,15 @@ elseif selectTraj == 2
     accBody(startSecondInterval:endSecondInterval,3) = -0.7;
     accBody(startThirdInterval:endThirdInterval,3) = -0.7;
     accBody(startFourthInterval:endFourthInterval,3) = 0.7;
-    accBody(endSecondInterval+1:endSecondInterval+200,1) = 0.01;
+    accBody(endSecondInterval+1:endSecondInterval+200,1) = 0.2;
+    accBody(startThirdInterval-200:startThirdInterval-1,1) = -0.2;
 
     % Sine wave signal for rotation around X-axis:
-    dt = 1/fs;  % second per sample
-    stopTime = 74;
-    t = (0:dt:stopTime-dt);
-    Fc = 0.001;
-    roll = (pi/6)*sin(2*pi*Fc*t);
+%     dt = 1/fs;  % second per sample
+%     stopTime = 74;
+%     t = (0:dt:stopTime-dt);
+%     Fc = 0.001;
+%     roll = (pi/6)*sin(2*pi*Fc*t);
 %     % Plot the signal versus time:
 %     figure;
 %     plot(t,roll);
@@ -86,24 +87,26 @@ elseif selectTraj == 2
 %     zoom xon;
 
     % Sine wave signal for rotation around Y-axis:
+    duration = startThirdInterval - endSecondInterval - 1;  % samples in one period
+    period = duration/fs;   % s
     dt = 1/fs;  % second per sample
-    stopTime = 74;
-    t = (0:dt:stopTime-dt);
-    Fc = 0.05;
-    pitch = -(pi/4/10)*sin(2*pi*Fc*t);
-    %Plot the signal versus time:
-    figure(10);
-    plot(t,pitch);
-    xlabel('time (in seconds)');
-    title('Signal versus Time');
-    zoom xon;
+    t = (0:dt:(period-dt));
+    Fc = 2*pi/period;   % rad/s
+    pitch_rotation = -((pi/4)/(70/4))*sin(Fc*t);
+%   % Plot the signal versus time:
+%     figure(10);
+%     plot(t,pitch_rotation);
+%     xlabel('time [s]');
+%     ylabel('angular velocity Y-axis [rad/s]');
+%     title('Angular velocity signal');
+%     zoom xon;
 
     % Sine wave signal for rotation around Z-axis:
-    dt = 1/fs;  % second per sample
-    stopTime = 74;
-    t = (0:dt:stopTime-dt);
-    Fc = 0.005;
-    yaw = (pi/2 / 3)*sin(2*pi*Fc*t);
+%     dt = 1/fs;  % second per sample
+%     stopTime = 74;
+%     t = (0:dt:stopTime-dt);
+%     Fc = 0.005;
+%     yaw = (2*pi/70)*sin(2*pi*Fc*t);
 %     % Plot the signal versus time:
 %     figure;
 %     plot(t,yaw);
@@ -112,13 +115,11 @@ elseif selectTraj == 2
 %     zoom xon;
 
     angVelBody = zeros(totalNumSamples,3);
-    %angVelBody(endSecondInterval+1:startThirdInterval-1,1) = roll';
-    angVelBody(endSecondInterval+1:startThirdInterval-1,2) = pitch';
-    %angVelBody(endSecondInterval+1:startThirdInterval-1,3) = yaw';
+    angVelBody(endSecondInterval+1:startThirdInterval-1,2) = pitch_rotation';
 end
 
 
-% Definition of kinematicTrajectory object
+%% Definition of kinematicTrajectory object
 initPosition = [0,0,0]; % at time t=0 body RS and navigation RS overlap
 initVel = [0,0,0];  % at time t=0 the drone is stationary
 
@@ -136,7 +137,7 @@ Rz = [  cos(yaw)    -sin(yaw)   0;
 Ry = [  cos(pitch)  0   sin(pitch);
         0           1   0;
         -sin(pitch) 0   cos(pitch)];    % rotation around y axis
-Rx = [1 0   0;
+Rx = [  1   0           0;
         0   cos(roll)   sin(roll);
         0   -sin(roll)  cos(roll)];     % rotation around x axis     
 %R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from navigation frame to body frame

@@ -106,25 +106,28 @@ for i = 1 : (numSamples)
 %             new_pitch = -new_pitch;
 %         end
 %     end
-    if round(new_pitch,2) == -round(pitch,2)
-        new_pitch = -new_pitch;
-    end
+%     if round(new_pitch,2) == -round(pitch,2)
+%         new_pitch = -new_pitch;
+%     end
     true_attitude_angles(i+1,2) = new_pitch;
     pitch = new_pitch;
 
     % Compute yaw angle
-    new_yaw = wrapTo2Pi(atan2(R(2,1,i),R(1,1,i)));
+    new_yaw = wrapToPi(atan2(R(2,1,i),R(1,1,i)));
     % Rotation of -pi or +pi is equivalent: control to prevent oscillations
     % between -pi and +pi
-    if round(new_yaw,2) == 6.28
-        if round(yaw) == 0
-            new_yaw = new_yaw - 2*pi;
-        end
-    elseif round(new_yaw) == 0
-        if round(yaw,2) == 6.28
-            new_yaw = new_yaw + 2*pi;
-        end
-    end
+%     if round(new_yaw,2) == 3.14
+%         if round(yaw,2) == -3.14
+%             new_yaw = -new_yaw;
+%         end
+%     elseif round(new_yaw,2) == -3.14
+%         if round(yaw,2) == 3.14
+%             new_yaw = -new_yaw;
+%         end
+%     end
+%     if round(new_yaw,2) == -round(yaw,2)
+%         new_yaw = -new_yaw;
+%     end
     true_attitude_angles(i+1,3) = new_yaw;
     yaw = new_yaw;
 end
@@ -139,7 +142,7 @@ plot(t,true_attitude_angles(:,2)')
 hold on
 plot(t,true_attitude_angles(:,3)')
 legend('Roll','Pitch','Yaw')
-title('Attitude estimation')
+title('Attitude estimation with true mechanization')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
 
@@ -169,9 +172,9 @@ for i = 2 : (numSamples+1)
 %             new_roll = -new_roll;
 %         end
 %     end
-    if round(new_roll,2) == -round(roll,2)
-        new_roll = - new_roll;
-    end
+%     if round(new_roll,2) == -round(roll,2)
+%         new_roll = - new_roll;
+%     end
     attitude_angles(i,1) = new_roll;
 
 
@@ -186,22 +189,25 @@ for i = 2 : (numSamples+1)
 %             new_pitch = -new_pitch;
 %         end
 %     end
-    if round(new_pitch,2) == -round(pitch,2)
-        new_pitch = -new_pitch;
-    end    
+%     if round(new_pitch,2) == -round(pitch,2)
+%         new_pitch = -new_pitch;
+%     end    
     attitude_angles(i,2) = new_pitch;
 
     yaw_dot = sin(roll)/cos(pitch) * angvel_y(i-1) + cos(roll)/cos(pitch) * angvel_z(i-1);
-    new_yaw = wrapTo2Pi(attitude_angles(i-1,3) + yaw_dot*dt);
-    if round(new_yaw,2) == 6.28
-        if round(yaw) == 0
-            new_yaw = new_yaw - 2*pi;
-        end
-    elseif round(new_yaw) == 0
-        if round(yaw,2) == 6.28
-            new_yaw = new_yaw + 2*pi;
-        end
-    end
+    new_yaw = wrapToPi(attitude_angles(i-1,3) + yaw_dot*dt);
+%     if round(new_yaw,2) == 3.14
+%         if round(yaw,2) == -3.14
+%             new_yaw = -new_yaw;
+%         end
+%     elseif round(new_yaw,2) == -3.14
+%         if round(yaw,2) == 3.14
+%             new_yaw = -new_yaw;
+%         end
+%     end
+%     if round(new_yaw,2) == -round(yaw,2)
+%         new_yaw = -new_yaw;
+%     end
     attitude_angles(i,3) = new_yaw;
 end
 
@@ -216,7 +222,7 @@ plot(t,attitude_angles(:,2)')
 hold on
 plot(t,attitude_angles(:,3)')
 legend('Roll','Pitch','Yaw')
-title('Attitude estimation')
+title('Attitude estimation with euler angles kinematics')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
 
@@ -243,22 +249,16 @@ for i = 2 : (numSamples+1)
 
     pitch_dot = cos(roll)*angvel_y_N(i-1) - sin(roll)*angvel_z_N(i-1);
     new_pitch = wrapToPi(attitude_angles_N(i-1,2) + pitch_dot*dt);
-    if round(new_pitch,2) == -round(pitch,2)
-        new_pitch = -new_pitch;
-    end
+%     if round(new_pitch,2) == -round(pitch,2)
+%         new_pitch = -new_pitch;
+%     end
     attitude_angles_N(i,2) = new_pitch;
 
     yaw_dot = sin(roll)/cos(pitch) * angvel_y_N(i-1) + cos(roll)/cos(pitch) * angvel_z_N(i-1);
-    new_yaw = wrapTo2Pi(attitude_angles_N(i-1,3) + yaw_dot*dt);
-    if round(new_yaw,2) == 6.28
-        if round(yaw) == 0
-            new_yaw = new_yaw - 2*pi;
-        end
-    elseif round(new_yaw) == 0
-        if round(yaw,2) == 6.28
-            new_yaw = new_yaw + 2*pi;
-        end
-    end
+    new_yaw = wrapToPi(attitude_angles_N(i-1,3) + yaw_dot*dt);
+%     if round(new_yaw,2) == -round(yaw,2)
+%         new_yaw = -new_yaw;
+%     end
     attitude_angles_N(i,3) = new_yaw;
 end
 
@@ -272,7 +272,7 @@ plot(t,attitude_angles_N(:,2)')
 hold on
 plot(t,attitude_angles_N(:,3)')
 legend('Roll','Pitch','Yaw')
-title('Attitude estimation')
+title('Attitude estimation with gyro bias')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
 
