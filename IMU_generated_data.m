@@ -5,38 +5,41 @@ clc
 %% Trajectory generation
 % The drone makes a vertical take off and moves with small accelerations
 
-selectTraj = 1;
+selectTraj = 5;
+selectBodyRS = 2;   % 1 is for ENU, 2 is for NWU
+fprintf('Selected trajectory: %d \n', selectTraj)
+fprintf('Selected body reference system: %d \n', selectBodyRS)
+
 fs = 100;   % Hz samples per second
 
 if selectTraj == 1 
     % First trajectory: 73 seconds of flight
-    % The drone moves in vertical for 1 m in 2.5 s and then rotates 90° in 3 s.
-    % It then moves forward for 60 seconds
-    % and performs a vertical landing with the same acceleration of the take off.
-    firstLoopSamples = fs*5;    % 500 measures for the first 5 seconds
-    secondLoopSamples = fs*3;   % 300 measures for the next 3 seconds
-    thirdLoopSamples = fs*60;   % 6000 measures for the next 60 seconds
-    fourthLoopSamples = fs*5;   % 500 measures for the final seconds of the trajectory
+    % take off + turn left + move forward + landing
+    firstLoopSamples = fs*5;    % take off 5 seconds
+    secondLoopSamples = fs*3;   % turn left 3 seconds
+    thirdLoopSamples = fs*60;   % move forward 60 seconds
+    fourthLoopSamples = fs*5;   % landing 5 seconds
     totalNumSamples = firstLoopSamples + secondLoopSamples + thirdLoopSamples + fourthLoopSamples;
     
+    % take off
     startFirstInterval = 1;
     endFirstInterval = firstLoopSamples/2;
     startSecondInterval = endFirstInterval+1;
     endSecondInterval = startSecondInterval + firstLoopSamples/2 - 1;
+    % turn left
     startThirdInterval = endSecondInterval + 1;
     endThirdInterval = startThirdInterval + secondLoopSamples - 1;
+    % move forward
     startFourthInterval = endThirdInterval + 1;
     endFifthInterval = startFourthInterval + thirdLoopSamples - 1;
     endFourthInterval = fix((startFourthInterval + endFifthInterval)/2);
     startFifthInterval = endFourthInterval + 1;
+    % landing
     startSixthInterval = endFifthInterval + 1;
     endSeventhInterval = startSixthInterval + fourthLoopSamples - 1;
     endSixthInterval = fix((startSixthInterval + endSeventhInterval)/2);
     startSeventhInterval = endSixthInterval + 1;
-    
-    % We assume that the reference system for the drone in equal to the ENU
-    % (east-north-up) at the initial time t = 0.
-    
+        
     % Body linear acceleration
     accBody = zeros(totalNumSamples,3);
     accBody(startFirstInterval:endFirstInterval,3) = 0.5;    % vertical take off
@@ -46,32 +49,36 @@ if selectTraj == 1
     accBody(startSixthInterval:endSixthInterval,3) = -0.5;  % vertical landing
     accBody(startSeventhInterval:endSeventhInterval,3) = 0.5;
     
-    % Velocità angolare body
+    % Body angular velocity
     angVelBody = zeros(totalNumSamples,3);
     angVelBody(startThirdInterval:endThirdInterval,3) = (pi/2)/3;    % turn left
 
 elseif selectTraj == 2
-    % Second trajectory
-    takeoffSamples = fs*5;    % vertical take off
-    landingSamples = fs*5;   % vertical landing
-    totalNumSamples = 8000; % 80 seconds of flight
+    % Second trajectory: 80 seconds of flight
+    % take off + move forward with pitch angle oscillation + landing
+    takeoffSamples = fs*5;  % take off 5 seconds
+    landingSamples = fs*5;  % landing 5 seconds      
+    totalNumSamples = 8000;
 
+    % take off
     startFirstInterval = 1;
     endFirstInterval = takeoffSamples/2;
     startSecondInterval = endFirstInterval + 1;
     endSecondInterval = startSecondInterval + takeoffSamples/2 - 1;
+    % landing
     startThirdInterval = totalNumSamples - landingSamples + 1;
     endFourthInterval = totalNumSamples;
     endThirdInterval = fix((startThirdInterval + endFourthInterval)/2);
     startFourthInterval = endThirdInterval + 1;
 
+    % Body linear acceleration
     accBody = zeros(totalNumSamples,3);
-    accBody(startFirstInterval:endFirstInterval,3) = 0.7;
+    accBody(startFirstInterval:endFirstInterval,3) = 0.7;   % vertical take off
     accBody(startSecondInterval:endSecondInterval,3) = -0.7;
-    accBody(startThirdInterval:endThirdInterval,3) = -0.7;
+    accBody(startThirdInterval:endThirdInterval,3) = -0.7;  % vertical landing
     accBody(startFourthInterval:endFourthInterval,3) = 0.7;
-    accBody(endSecondInterval+1:endSecondInterval+200,1) = 0.2;
-    accBody(startThirdInterval-200:startThirdInterval-1,1) = -0.2;
+    accBody(endSecondInterval+1:endSecondInterval+200,1) = 0.15;    % forward movement
+    accBody(startThirdInterval-200:startThirdInterval-1,1) = -0.15;
 
     % Sine wave signal for rotation around X-axis:
 %     dt = 1/fs;  % second per sample
@@ -93,44 +100,192 @@ elseif selectTraj == 2
     t = (0:dt:(period-dt));
     Fc = 2*pi/period;   % rad/s
     pitch_rotation = -((pi/4)/(70/4))*sin(Fc*t);
-%   % Plot the signal versus time:
+    % Plot the signal versus time:
+    figure(10);
+    plot(t,pitch_rotation);
+    xlabel('time [s]');
+    ylabel('angular velocity Y-axis [rad/s]');
+    title('Angular velocity signal');
+    zoom xon;
+
+    % Sine wave signal for rotation around Z-axis:
+%     duration = startThirdInterval - endSecondInterval - 1;  % samples in one period
+%     period = duration/fs;   % s
+%     dt = 1/fs;  % second per sample
+%     t = (0:dt:(period-dt));
+%     Fc = 2*pi/period;   % rad/s
+%     %yaw_rotation = -((pi/4)/(70/4))*sin(Fc*t);
+%     yaw_rotation = -((pi/2)/(period/4))*sin(Fc*t);
+%     % Plot the signal versus time:
 %     figure(10);
-%     plot(t,pitch_rotation);
+%     plot(t,yaw_rotation);
 %     xlabel('time [s]');
-%     ylabel('angular velocity Y-axis [rad/s]');
+%     ylabel('angular velocity Z-axis [rad/s]');
 %     title('Angular velocity signal');
 %     zoom xon;
 
-    % Sine wave signal for rotation around Z-axis:
-%     dt = 1/fs;  % second per sample
-%     stopTime = 74;
-%     t = (0:dt:stopTime-dt);
-%     Fc = 0.005;
-%     yaw = (2*pi/70)*sin(2*pi*Fc*t);
-%     % Plot the signal versus time:
-%     figure;
-%     plot(t,yaw);
-%     xlabel('time (in seconds)');
-%     title('Signal versus Time');
-%     zoom xon;
-
+    % Body angular velocity
     angVelBody = zeros(totalNumSamples,3);
-    angVelBody(endSecondInterval+1:startThirdInterval-1,2) = pitch_rotation';
+    angVelBody(endSecondInterval+1:startThirdInterval-1,2) = pitch_rotation';   % pitch angle oscillations
+
+elseif selectTraj == 3
+    % Third trajectory: 87 seconds of flight
+    % take off + turn left + turn right + move forward + landing
+    firstLoopSamples = fs*5;    % take off 5 seconds
+    secondLoopSamples = fs*10;  % turn left 10 seconds
+    thirdLoopSamples = fs*10;   % turn right in 10 seconds
+    fourthLoopSamples = fs*57;  % move forward in 57 seconds
+    fifthLoopSamples = fs*5;    % landing in 5 seconds
+    totalNumSamples = firstLoopSamples + secondLoopSamples + thirdLoopSamples + fourthLoopSamples + fifthLoopSamples;
+    
+    % Take off
+    startFirstInterval = 1;
+    endFirstInterval = firstLoopSamples/2;
+    startSecondInterval = endFirstInterval+1;
+    endSecondInterval = startSecondInterval + firstLoopSamples/2 - 1;
+    % Turn left
+    startThirdInterval = endSecondInterval + 1;
+    endThirdInterval = startThirdInterval + secondLoopSamples - 1;
+    % Turn right
+    startFourthInterval = endThirdInterval + 1;
+    endFourthInterval = startFourthInterval + thirdLoopSamples - 1;
+    % Move forward
+    startFifthInterval = endFourthInterval + 1;
+    endSixthInterval = startFifthInterval + fourthLoopSamples - 1;
+    endFifthInterval = fix((startFifthInterval + endSixthInterval)/2);
+    startSixthInterval = endFifthInterval + 1;
+    % Landing
+    startSeventhInterval = endSixthInterval + 1;
+    endEighthInterval = startSeventhInterval + fifthLoopSamples - 1;
+    endSeventhInterval = fix((startSeventhInterval + endEighthInterval)/2);
+    startEighthInterval = endSeventhInterval + 1;
+      
+    % Body linear acceleration
+    accBody = zeros(totalNumSamples,3);
+    accBody(startFirstInterval:endFirstInterval,3) = 0.5;    % vertical take off
+    accBody(startSecondInterval:endSecondInterval,3) = -0.5;
+    accBody(startFifthInterval:endFifthInterval,1) = 0.005;  % forward movement
+    accBody(startSixthInterval:endSixthInterval,1) = -0.005;
+    accBody(startSeventhInterval:endSeventhInterval,3) = -0.5;  % vertical landing
+    accBody(startEighthInterval:endEighthInterval,3) = 0.5;
+    
+    % Velocità angolare body
+    angVelBody = zeros(totalNumSamples,3);
+    angVelBody(startThirdInterval:endThirdInterval,3) = (pi/2)/10;    % turn left
+    angVelBody(startFourthInterval:endFourthInterval,3) = -(pi/2)/10;  % turn right
+    
+elseif selectTraj == 4
+    % Fourth trajectory: 30 minutes of flight
+    % take off + yaw angle oscillations + landing
+    takeoffSamples = fs*5;    % vertical take off
+    landingSamples = fs*5;   % vertical landing
+    totalNumSamples = fs*30*60; % 30*60 seconds of flight
+
+    % take off
+    startFirstInterval = 1;
+    endFirstInterval = takeoffSamples/2;
+    startSecondInterval = endFirstInterval + 1;
+    endSecondInterval = startSecondInterval + takeoffSamples/2 - 1;
+    % landing
+    startThirdInterval = totalNumSamples - landingSamples + 1;
+    endFourthInterval = totalNumSamples;
+    endThirdInterval = fix((startThirdInterval + endFourthInterval)/2);
+    startFourthInterval = endThirdInterval + 1;
+
+    % Body linear acceleration
+    accBody = zeros(totalNumSamples,3);
+    accBody(startFirstInterval:endFirstInterval,3) = 0.7;   % take off
+    accBody(startSecondInterval:endSecondInterval,3) = -0.7;
+    accBody(startThirdInterval:endThirdInterval,3) = -0.7;  % landing
+    accBody(startFourthInterval:endFourthInterval,3) = 0.7;
+
+    % Sine wave signal for rotation around Z-axis:
+    duration = 800*fs;  % samples in one period
+    period = duration/fs;   % s
+    dt = 1/fs;  % second per sample
+    t = (0:dt:(period-dt));
+    Fc = 2*pi/period;   % rad/s
+    %yaw_rotation = -((pi/2)/(period/4))*sin(Fc*t);
+    yaw_rotation = 0.15*sin(Fc*t);
+    % Plot the signal versus time:
+    figure(10);
+    plot(t,yaw_rotation);
+    xlabel('time [s]');
+    ylabel('angular velocity Z-axis [rad/s]');
+    title('Angular velocity signal');
+    zoom xon;
+
+    % Body angular velocity
+    angVelBody = zeros(totalNumSamples,3);
+    angVelBody(endSecondInterval+500*fs+1:endSecondInterval+500*fs+duration,3) = yaw_rotation'; % yaw angle oscillation
+
+elseif selectTraj == 5
+    % Fifth trajectory: 73 seconds of flight
+    % take off + turn right + move forward + landing
+    firstLoopSamples = fs*5;    % take off 5 seconds
+    secondLoopSamples = fs*3;   % turn right 3 seconds
+    thirdLoopSamples = fs*60;   % move forward 60 seconds
+    fourthLoopSamples = fs*5;   % landing 5 seconds
+    totalNumSamples = firstLoopSamples + secondLoopSamples + thirdLoopSamples + fourthLoopSamples;
+    
+    % take off
+    startFirstInterval = 1;
+    endFirstInterval = firstLoopSamples/2;
+    startSecondInterval = endFirstInterval+1;
+    endSecondInterval = startSecondInterval + firstLoopSamples/2 - 1;
+    % turn right
+    startThirdInterval = endSecondInterval + 1;
+    endThirdInterval = startThirdInterval + secondLoopSamples - 1;
+    % move forward
+    startFourthInterval = endThirdInterval + 1;
+    endFifthInterval = startFourthInterval + thirdLoopSamples - 1;
+    endFourthInterval = fix((startFourthInterval + endFifthInterval)/2);
+    startFifthInterval = endFourthInterval + 1;
+    % landing
+    startSixthInterval = endFifthInterval + 1;
+    endSeventhInterval = startSixthInterval + fourthLoopSamples - 1;
+    endSixthInterval = fix((startSixthInterval + endSeventhInterval)/2);
+    startSeventhInterval = endSixthInterval + 1;
+    
+    % Body linear acceleration
+    accBody = zeros(totalNumSamples,3);
+    accBody(startFirstInterval:endFirstInterval,3) = 0.5;    % vertical take off
+    accBody(startSecondInterval:endSecondInterval,3) = -0.5;
+    accBody(startFourthInterval:endFourthInterval,1) = 0.005;  % forward movement
+    accBody(startFifthInterval:endFifthInterval,1) = -0.005;
+    accBody(startSixthInterval:endSixthInterval,3) = -0.5;  % vertical landing
+    accBody(startSeventhInterval:endSeventhInterval,3) = 0.5;
+    
+    % Body angular velocity
+    angVelBody = zeros(totalNumSamples,3);
+    angVelBody(startThirdInterval:endThirdInterval,3) = -(pi/3)/3;    % turn right
 end
 
 
 %% Definition of kinematicTrajectory object
-initPosition = [0,0,0]; % at time t=0 body RS and navigation RS overlap
+initPosition = [0,0,0]; % at time t=0 body frame and navigation frame overlap
 initVel = [0,0,0];  % at time t=0 the drone is stationary
 
-% Body reference system is rotated by -90° around z and 180° around y with
-% respect to the navigation reference system (parametrization with
-% roll-pitch-yaw ZYX)
+if selectBodyRS == 1
+    % We assume that the body reference system is ENU (east-north-up)
+    % Body reference system is rotated by -90° around z-axis and 180° around y-axis with
+    % respect to the navigation reference system (parametrization with
+    % roll-pitch-yaw ZYX)
+    yaw = -pi/2;
+    pitch = pi;
+    roll = 0;
+elseif selectBodyRS == 2
+    % We assume that the body reference system is NWU (north-west-up)
+    % Body reference system is rotated by 180° around x-axis with
+    % respect to the navigation reference system (parametrization with
+    % roll-pitch-yaw ZYX)
+    yaw = 0;
+    pitch = 0;
+    roll = pi;
+end
 
-% Orientation matrix (composition in local axes):
-yaw = -pi/2;
-pitch = pi;
-roll = 0;
+% Compute rotation matrix from navigation reference system to body
+% reference system (composition in local axes)
 Rz = [  cos(yaw)    -sin(yaw)   0;
         sin(yaw)    cos(yaw)    0;
         0           0           1];     % rotation around z axis
@@ -139,17 +294,18 @@ Ry = [  cos(pitch)  0   sin(pitch);
         -sin(pitch) 0   cos(pitch)];    % rotation around y axis
 Rx = [  1   0           0;
         0   cos(roll)   sin(roll);
-        0   -sin(roll)  cos(roll)];     % rotation around x axis     
+        0   -sin(roll)  cos(roll)];     % rotation around x axis  
+
 %R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from navigation frame to body frame
 R = Rx' * Ry' * Rz';    % composition from right to left: rotation matrix from navigation frame to body frame
-initOrientation = R;    % rotation matrix from navigation frame to body frame
+initOrientation = R;
 
 traj = kinematicTrajectory('SampleRate',fs,...
     'Velocity',initVel,...
     'Position',initPosition,...
     'Orientation',initOrientation);
 
-[position,orientationNED,~,accNED,angVelNED] = traj(accBody,angVelBody);
+[position,orientationNED,velocity,accNED,angVelNED] = traj(accBody,angVelBody);
 
 % Plot the trajectory in navigation frame (NED frame)
 t = (0:(totalNumSamples-1))/fs;
@@ -233,9 +389,11 @@ IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
 %     'AccelerationBias',0.00017809, ...
 %     'ConstantBias',[0.3491,0.5,0]);
 
-noiseDensity = 1e-05;   % gyro white noise drift
+noiseDensity = 1e-08;   % gyro white noise drift
+%noiseDensity = 1e-07;
 %constantBias = [0.01, 0.01, 0.005]; % gyro constant bias 
-constantBias = [1e-03, 1e-03, 5e-04];
+%constantBias = [1e-03, 1e-03, 5e-04];
+constantBias = [1e-06, 3e-06, 5e-06];
 IMU_Noise.Gyroscope.NoiseDensity = noiseDensity;   % add white noise drift for gyro measurements
 IMU_Noise.Gyroscope.ConstantBias = constantBias;    % add a constant bias for gyro measurements (https://www.ericcointernational.com/inertial-measurement-units)
 

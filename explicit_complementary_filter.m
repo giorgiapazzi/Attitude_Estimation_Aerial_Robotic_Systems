@@ -20,9 +20,10 @@ dt = 1/fs;  % sample time
 R0 = log_vars.initOrientation;    % rotation matrix from body frame to navigation frame at time t=0
 R = log_vars.orientation;   % rotation matrix from body frame to navigation frame for t>0 
 
-std_dev_R = 1e-04;  % standard deviation for initial rotation matrix
-%R0 = R0 + std_dev_R * ones(3,3) * randn(3,1);   % initial rotation matrix with uncertainty
-R = cat(3,R0,R);    % concatenate rotation matrix in one single multidimensional array
+std_dev_R = 1e-03;  % standard deviation for initial rotation matrix
+R0 = R0 + std_dev_R * ones(3,3) * randn(3,1);   % initial rotation matrix with uncertainty
+%R0 = eye(3,3);
+R = cat(3,R0,R);    % concatenate rotation matrices in one single multidimensional array
 g = 9.81;   % gravity acceleration
 e3 = [0;0;1];
 u_I = e3;
@@ -49,15 +50,17 @@ b_omega = [0;0;0];
 attitude_angles = zeros(numSamples+1,3);
 attitude_angles(1,:)= [roll_0,pitch_0,yaw_0];
 
+sigmaR = zeros(3,1);
+sigmaB = zeros(3,1);
+estimatedAngVel = zeros(3,1);
+
 % Positive constant gains
-% First trajectory:
 k1 = 0.5;  
 k2 = 0.5;  
-kb = 0.5; 
-% Second trajectory
-% k1 = 0.001;
-% k2 = 0.001;
-% kb = 0.001;
+kb = 0.5;
+% k1 = 0.9;
+% k2 = 0.9;
+% kb = 0.9;
 
 %% Explicit complementary filter
 for i = 2 : (numSamples+1)
@@ -87,29 +90,34 @@ for i = 2 : (numSamples+1)
     omega_z = angvel_z(i-1) - b_omega(3,i) + sigma_R(3);
 
     roll_dot = omega_x + sin(roll)*tan(pitch)*omega_y + cos(roll)*tan(pitch)*omega_z;
-    new_roll = wrapToPi(attitude_angles(i-1,1) + roll_dot*dt);
+    new_roll = wrapToPi(roll + roll_dot*dt);
     attitude_angles(i,1) = new_roll;
         
     pitch_dot = cos(roll)*omega_y - sin(roll)*omega_z;
-    new_pitch = wrapToPi(attitude_angles(i-1,2) + pitch_dot*dt);
+    new_pitch = wrapToPi(pitch + pitch_dot*dt);
     attitude_angles(i,2) = new_pitch;
 
     yaw_dot = sin(roll)/cos(pitch) * omega_y + cos(roll)/cos(pitch) * omega_z;
-    new_yaw = wrapToPi(attitude_angles(i-1,3) + yaw_dot*dt);
+    new_yaw = wrapToPi(yaw + yaw_dot*dt);
     attitude_angles(i,3) = new_yaw;
 
-    Rz = [  cos(attitude_angles(i,3))     -sin(attitude_angles(i,3))    0;
-            sin(attitude_angles(i,3))     cos(attitude_angles(i,3))     0;
-            0                               0                               1];     % rotation around z axis
-    Ry = [  cos(attitude_angles(i,2))     0   sin(attitude_angles(i,2));
-            0                               1   0;
-            -sin(attitude_angles(i,2))    0   cos(attitude_angles(i,2))];    % rotation around y axis
-    Rx = [  1       0                               0;
-            0       cos(attitude_angles(i,1))     sin(attitude_angles(i,1));
-            0       -sin(attitude_angles(i,1))    cos(attitude_angles(i,1))];     % rotation around x axis     
-    %R_pred(:,:,i+1) = Rz*Ry*Rx; % composition from left to right: rotation matrix from body frame to navigation frame
+    Rz = [  cos(new_yaw)    -sin(new_yaw)   0;
+            sin(new_yaw)    cos(new_yaw)    0;
+            0               0               1];     % rotation around z axis
+    Ry = [  cos(new_pitch)      0   sin(new_pitch);
+            0                   1   0;
+            -sin(new_pitch)     0   cos(new_pitch)];    % rotation around y axis
+    Rx = [  1       0                   0;
+            0       cos(new_roll)       sin(new_roll);
+            0       -sin(new_roll)      cos(new_roll)];     % rotation around x axis     
+    %R_pred(:,:,i) = Rz*Ry*Rx; % composition from left to right: rotation matrix from body frame to navigation frame
     R_pred(:,:,i) = Rx' * Ry' * Rz';
-       
+
+
+    sigmaR(:,i) = sigma_R;
+    sigmaB(:,i) = sigma_b;
+    estimatedAngVel(:,i) = [omega_x;omega_y;omega_z];
+        
 end
 
 
@@ -158,7 +166,9 @@ plot(t,attitude_angles(:,3)')
 legend('Roll','Pitch','Yaw')
 title('Attitude estimation')
 xlabel('t [s]')
+xlim([0,size(t,2)/fs])
 ylabel('Roll-pitch-yaw angles [rad]')
+
 
 figure(2)
 plot(t,attitude_angles_plot(:,1)')
@@ -169,6 +179,7 @@ plot(t,attitude_angles_plot(:,3)')
 legend('Roll','Pitch','Yaw')
 title('Attitude estimation without oscillation between [-pi;pi]')
 xlabel('t [s]')
+xlim([0,size(t,2)/fs])
 ylabel('Roll-pitch-yaw angles [rad]')
 
 % for i=1 : (numSamples+1)
@@ -186,6 +197,7 @@ plot(t,error_yaw)
 legend('Roll Error','Pitch Error','Yaw Error')
 title('Attitude estimation error')
 xlabel('t [s]')
+xlim([0,size(t,2)/fs])
 ylabel('Roll-pitch-yaw angles error [rad]')
 
 figure(4)
@@ -197,15 +209,32 @@ plot(t,b_omega(3,:))
 legend('x-bias','y-bias','z-bias')
 title('Gyro bias estimation')
 xlabel('t [s]')
+xlim([0,size(t,2)/fs])
 ylabel('Gyro bias [rad]')
 
+gyro_bias_error(1,:) = b_omega(1,:)-constantBias(1);
+gyro_bias_error(2,:) = b_omega(2,:)-constantBias(2);
+gyro_bias_error(3,:) = b_omega(3,:)-constantBias(3);
+
 figure(5)
-plot(t,(b_omega(1,:)-constantBias(1)))
+plot(t,gyro_bias_error(1,:))
 hold on
-plot(t,(b_omega(2,:)-constantBias(2)))
+plot(t,gyro_bias_error(2,:))
 hold on
-plot(t,(b_omega(3,:)-constantBias(3)))
+plot(t,gyro_bias_error(3,:))
 legend('x-bias error','y-bias error','z-bias error')
 title('Gyro bias estimation error')
 xlabel('t [s]')
+xlim([0,size(t,2)/fs])
 ylabel('Gyro bias error [rad]')
+
+% figure(6)
+% plot(t,sigmaR)
+% title('SigmaR')
+% grid on
+% 
+% figure(7)
+% plot(t,sigmaB)
+% title('SigmaB')
+% grid on
+

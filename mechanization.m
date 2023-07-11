@@ -60,7 +60,7 @@ roll_0 = atan2(R0(3,2),R0(3,3));
 pitch_0 = -asin(R0(3,1));
 yaw_0 = atan2(R0(2,1),R0(1,1));
 
-fprintf('Initial attitude angles: roll %f   pitch %f    yaw %f\n', roll_0, pitch_0, yaw_0);
+%fprintf('Initial attitude angles from body frame: yaw %f   pitch %f    roll %f\n', yaw_0, pitch_0, roll_0);
 
 
 %% Attitude values computed with true mechanization
