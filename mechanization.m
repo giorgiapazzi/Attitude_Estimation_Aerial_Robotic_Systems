@@ -60,7 +60,7 @@ roll_0 = atan2(R0(3,2),R0(3,3));
 pitch_0 = -asin(R0(3,1));
 yaw_0 = atan2(R0(2,1),R0(1,1));
 
-%fprintf('Initial attitude angles from body frame: yaw %f   pitch %f    roll %f\n', yaw_0, pitch_0, roll_0);
+fprintf('Initial attitude angles from body frame: yaw %f   pitch %f    roll %f\n', yaw_0, pitch_0, roll_0);
 
 
 %% Attitude values computed with true mechanization
@@ -145,6 +145,7 @@ legend('Roll','Pitch','Yaw')
 title('Attitude estimation with true mechanization')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
+grid on
 
 
 %% Euler angles kinematics wihout noise
@@ -225,6 +226,7 @@ legend('Roll','Pitch','Yaw')
 title('Attitude estimation with euler angles kinematics')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
+grid on
 
 %% Euler angles kinematics with noise
 % roll_dot = omega_x + sin(roll)*tan(pitch)*omega_y + cos(roll)*tan(pitch)*omega_z
@@ -275,6 +277,7 @@ legend('Roll','Pitch','Yaw')
 title('Attitude estimation with gyro bias')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles [rad]')
+grid on
 
 
 %% Error plot
@@ -296,24 +299,28 @@ legend('Roll Error','Pitch Error','Yaw Error')
 title('Attitude estimation error')
 xlabel('t [s]')
 ylabel('Roll-pitch-yaw angles error [rad]')
+grid on
 
 figure(5)
 plot(t,error_roll)
 title('Roll estimation error')
 xlabel('t [s]')
 ylabel('Roll angle error [rad]')
+grid on
 
 figure(6)
 plot(t,error_pitch)
 title('Pitch estimation error')
 xlabel('t [s]')
 ylabel('Pitch angle error [rad]')
+grid on
 
 figure(7)
 plot(t,error_yaw)
 title('Yaw estimation error')
 xlabel('t [s]')
 ylabel('Yaw angle error [rad]')
+grid on
 
 
 %% Load data in dataset

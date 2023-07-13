@@ -5,8 +5,8 @@ clc
 %% Trajectory generation
 % The drone makes a vertical take off and moves with small accelerations
 
-selectTraj = 5;
-selectBodyRS = 2;   % 1 is for ENU, 2 is for NWU
+selectTraj = 2;
+selectBodyRS = 2;   % 1 is for ENU, 2 is for NWU, 3 is for 45° rotation
 fprintf('Selected trajectory: %d \n', selectTraj)
 fprintf('Selected body reference system: %d \n', selectBodyRS)
 
@@ -77,21 +77,8 @@ elseif selectTraj == 2
     accBody(startSecondInterval:endSecondInterval,3) = -0.7;
     accBody(startThirdInterval:endThirdInterval,3) = -0.7;  % vertical landing
     accBody(startFourthInterval:endFourthInterval,3) = 0.7;
-    accBody(endSecondInterval+1:endSecondInterval+200,1) = 0.15;    % forward movement
-    accBody(startThirdInterval-200:startThirdInterval-1,1) = -0.15;
-
-    % Sine wave signal for rotation around X-axis:
-%     dt = 1/fs;  % second per sample
-%     stopTime = 74;
-%     t = (0:dt:stopTime-dt);
-%     Fc = 0.001;
-%     roll = (pi/6)*sin(2*pi*Fc*t);
-%     % Plot the signal versus time:
-%     figure;
-%     plot(t,roll);
-%     xlabel('time (in seconds)');
-%     title('Signal versus Time');
-%     zoom xon;
+    accBody(endSecondInterval+1:endSecondInterval+200,1) = 0.5;    % forward movement
+    accBody(startThirdInterval-200:startThirdInterval-1,1) = -0.5;
 
     % Sine wave signal for rotation around Y-axis:
     duration = startThirdInterval - endSecondInterval - 1;  % samples in one period
@@ -101,28 +88,12 @@ elseif selectTraj == 2
     Fc = 2*pi/period;   % rad/s
     pitch_rotation = -((pi/4)/(70/4))*sin(Fc*t);
     % Plot the signal versus time:
-    figure(10);
-    plot(t,pitch_rotation);
-    xlabel('time [s]');
-    ylabel('angular velocity Y-axis [rad/s]');
-    title('Angular velocity signal');
-    zoom xon;
-
-    % Sine wave signal for rotation around Z-axis:
-%     duration = startThirdInterval - endSecondInterval - 1;  % samples in one period
-%     period = duration/fs;   % s
-%     dt = 1/fs;  % second per sample
-%     t = (0:dt:(period-dt));
-%     Fc = 2*pi/period;   % rad/s
-%     %yaw_rotation = -((pi/4)/(70/4))*sin(Fc*t);
-%     yaw_rotation = -((pi/2)/(period/4))*sin(Fc*t);
-%     % Plot the signal versus time:
 %     figure(10);
-%     plot(t,yaw_rotation);
+%     plot(t,pitch_rotation);
 %     xlabel('time [s]');
-%     ylabel('angular velocity Z-axis [rad/s]');
+%     ylabel('angular velocity Y-axis [rad/s]');
 %     title('Angular velocity signal');
-%     zoom xon;
+%     grid on
 
     % Body angular velocity
     angVelBody = zeros(totalNumSamples,3);
@@ -175,53 +146,8 @@ elseif selectTraj == 3
     angVelBody(startFourthInterval:endFourthInterval,3) = -(pi/2)/10;  % turn right
     
 elseif selectTraj == 4
-    % Fourth trajectory: 30 minutes of flight
-    % take off + yaw angle oscillations + landing
-    takeoffSamples = fs*5;    % vertical take off
-    landingSamples = fs*5;   % vertical landing
-    totalNumSamples = fs*30*60; % 30*60 seconds of flight
-
-    % take off
-    startFirstInterval = 1;
-    endFirstInterval = takeoffSamples/2;
-    startSecondInterval = endFirstInterval + 1;
-    endSecondInterval = startSecondInterval + takeoffSamples/2 - 1;
-    % landing
-    startThirdInterval = totalNumSamples - landingSamples + 1;
-    endFourthInterval = totalNumSamples;
-    endThirdInterval = fix((startThirdInterval + endFourthInterval)/2);
-    startFourthInterval = endThirdInterval + 1;
-
-    % Body linear acceleration
-    accBody = zeros(totalNumSamples,3);
-    accBody(startFirstInterval:endFirstInterval,3) = 0.7;   % take off
-    accBody(startSecondInterval:endSecondInterval,3) = -0.7;
-    accBody(startThirdInterval:endThirdInterval,3) = -0.7;  % landing
-    accBody(startFourthInterval:endFourthInterval,3) = 0.7;
-
-    % Sine wave signal for rotation around Z-axis:
-    duration = 800*fs;  % samples in one period
-    period = duration/fs;   % s
-    dt = 1/fs;  % second per sample
-    t = (0:dt:(period-dt));
-    Fc = 2*pi/period;   % rad/s
-    %yaw_rotation = -((pi/2)/(period/4))*sin(Fc*t);
-    yaw_rotation = 0.15*sin(Fc*t);
-    % Plot the signal versus time:
-    figure(10);
-    plot(t,yaw_rotation);
-    xlabel('time [s]');
-    ylabel('angular velocity Z-axis [rad/s]');
-    title('Angular velocity signal');
-    zoom xon;
-
-    % Body angular velocity
-    angVelBody = zeros(totalNumSamples,3);
-    angVelBody(endSecondInterval+500*fs+1:endSecondInterval+500*fs+duration,3) = yaw_rotation'; % yaw angle oscillation
-
-elseif selectTraj == 5
-    % Fifth trajectory: 73 seconds of flight
-    % take off + turn right + move forward + landing
+    % Sixth trajectory: 73 seconds of flight
+    % take off + turn around + move forward + landing
     firstLoopSamples = fs*5;    % take off 5 seconds
     secondLoopSamples = fs*3;   % turn right 3 seconds
     thirdLoopSamples = fs*60;   % move forward 60 seconds
@@ -233,7 +159,7 @@ elseif selectTraj == 5
     endFirstInterval = firstLoopSamples/2;
     startSecondInterval = endFirstInterval+1;
     endSecondInterval = startSecondInterval + firstLoopSamples/2 - 1;
-    % turn right
+    % turn around
     startThirdInterval = endSecondInterval + 1;
     endThirdInterval = startThirdInterval + secondLoopSamples - 1;
     % move forward
@@ -258,7 +184,7 @@ elseif selectTraj == 5
     
     % Body angular velocity
     angVelBody = zeros(totalNumSamples,3);
-    angVelBody(startThirdInterval:endThirdInterval,3) = -(pi/3)/3;    % turn right
+    angVelBody(startThirdInterval:endThirdInterval,3) = (2*pi)/3;    % turn around
 end
 
 
@@ -270,7 +196,7 @@ if selectBodyRS == 1
     % We assume that the body reference system is ENU (east-north-up)
     % Body reference system is rotated by -90° around z-axis and 180° around y-axis with
     % respect to the navigation reference system (parametrization with
-    % roll-pitch-yaw ZYX)
+    % yaw-pitch-roll ZYX)
     yaw = -pi/2;
     pitch = pi;
     roll = 0;
@@ -278,8 +204,15 @@ elseif selectBodyRS == 2
     % We assume that the body reference system is NWU (north-west-up)
     % Body reference system is rotated by 180° around x-axis with
     % respect to the navigation reference system (parametrization with
-    % roll-pitch-yaw ZYX)
+    % yaw-pitch-roll ZYX)
     yaw = 0;
+    pitch = 0;
+    roll = pi;
+elseif selectBodyRS == 3
+    % We assume that the body reference system is rotated by 45° around
+    % z-axis and by 180° around x-axis with respect to the navigation
+    % reference system (parametrization with yaw-pitch-roll ZYX)
+    yaw = pi/4;
     pitch = 0;
     roll = pi;
 end
@@ -343,13 +276,15 @@ subplot(3,1,1)
 plot(t,accelReading)
 legend('X-axis','Y-axis','Z-axis')
 title('Accelerometer Readings')
-ylabel('Acceleration (m/s^2)')
+ylabel('Acceleration [m/s^2]')
+grid on
 
 subplot(3,1,2)
 plot(t,gyroReading)
 legend('X-axis','Y-axis','Z-axis')
 title('Gyroscope Readings')
 ylabel('Angular Velocity (rad/s)')
+grid on
 
 subplot(3,1,3)
 plot(t,magReading)
@@ -357,6 +292,7 @@ legend('X-axis','Y-axis','Z-axis')
 title('Magnetometer Readings')
 xlabel('Time (s)')
 ylabel('Magnetic Field (uT)')
+grid on
 
 
 %% Generate IMU data with noise
@@ -389,10 +325,11 @@ IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
 %     'AccelerationBias',0.00017809, ...
 %     'ConstantBias',[0.3491,0.5,0]);
 
-noiseDensity = 1e-08;   % gyro white noise drift
+noiseDensity = 1e-07;   % gyro white noise drift
 %noiseDensity = 1e-07;
-%constantBias = [0.01, 0.01, 0.005]; % gyro constant bias 
-%constantBias = [1e-03, 1e-03, 5e-04];
+%constantBias = [0.01, 0.03, 0.05]; % gyro constant bias 
+% constantBias = [1e-03, 3e-03, 5e-03];
+%constantBias = [1e-05, 3e-05, 5e-05];
 constantBias = [1e-06, 3e-06, 5e-06];
 IMU_Noise.Gyroscope.NoiseDensity = noiseDensity;   % add white noise drift for gyro measurements
 IMU_Noise.Gyroscope.ConstantBias = constantBias;    % add a constant bias for gyro measurements (https://www.ericcointernational.com/inertial-measurement-units)
@@ -408,12 +345,14 @@ plot(t,accelReadingN)
 legend('X-axis','Y-axis','Z-axis')
 title('Accelerometer Readings With Noise')
 ylabel('Acceleration (m/s^2)')
+grid on
 
 subplot(3,1,2)
 plot(t,gyroReadingN)
 legend('X-axis','Y-axis','Z-axis')
 title('Gyroscope Readings With Noise')
 ylabel('Angular Velocity (rad/s)')
+grid on
 
 subplot(3,1,3)
 plot(t,magReadingN)
@@ -421,6 +360,7 @@ legend('X-axis','Y-axis','Z-axis')
 title('Magnetometer Readings With Noise')
 xlabel('Time (s)')
 ylabel('Magnetic Field (uT)')
+grid on
 
 %% Load data in dataset
 log_vars = [];
@@ -438,4 +378,6 @@ log_vars.orientation = orientationBODY;
 log_vars.frequency = fs;
 log_vars.numSamples = totalNumSamples;
 log_vars.gyrobias = constantBias;
+log_vars.trajectory = selectTraj;
+log_vars.frame = selectBodyRS;
 save('dataset','log_vars');
