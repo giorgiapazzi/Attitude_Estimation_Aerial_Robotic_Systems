@@ -19,17 +19,19 @@ true_attitude_angles = log_vars.trueAttitudeAngles; % attitude angles computed w
 
 dt = 1/fs;  % sample time
 
-R0 = log_vars.initOrientation;    % rotation matrix from body frame to navigation frame at time t=0
+%R0 = log_vars.initOrientation;    % rotation matrix from body frame to navigation frame at time t=0
+R0 = eye(3,3);
 R = log_vars.orientation;   % rotation matrix from body frame to navigation frame for t>0 
 
 std_dev_R = 1e-03;  % standard deviation for initial rotation matrix
-R0 = R0 + std_dev_R * ones(3,3) * randn(3,1);   % initial rotation matrix with uncertainty
+%R0 = R0 + std_dev_R * ones(3,3) * randn(3,1);   % initial rotation matrix with uncertainty
 R = cat(3,R0,R);    % concatenate rotation matrices in one single multidimensional array
 g = 9.81;   % gravity acceleration
 e3 = [0;0;1];
 u_I = e3;
 m_I = [27.5550;-2.4169;-16.08049];  % magnetic field in navigation frame 
-m_I_norm = m_I / norm(m_I);  % normalized magnetic field in navigation frame
+norm_mI = norm(m_I);
+m_I_norm = m_I / norm_mI;  % normalized magnetic field in navigation frame
 
 %% Initialization
 % Initial orientation of body frame with respect to navigation frame:
@@ -61,26 +63,26 @@ estimatedAngVel = zeros(3,1);
 k1 = 1;
 k2 = 1;
 kb = 0.3;
-if trajectory==1 && frame == 2
-    k1 = 1;  
-    k2 = 1;  
-    kb = 0.008;
-end
-if trajectory==3 && frame==1
-    k1 = 0.9;
-    k2 = 0.9;
-    kb = 0.01;
-end
+% if trajectory==1 && frame == 2
+%     k1 = 1;  
+%     k2 = 1;  
+%     kb = 0.008;
+% end
+% if trajectory==3 && frame==1
+%     k1 = 0.9;
+%     k2 = 0.9;
+%     kb = 0.01;
+% end
 
 fprintf('Selected trajectory: %d    Selected frame: %d      k1 = %f     k2 = %f     kb = %f \n',trajectory,frame,k1,k2,kb)
 
 
 %% Explicit complementary filter
 for i = 2 : (numSamples+1)
-    a_B = -R(:,:,i-1)' * (g .* e3); %+ (std_dev_acc * randn(3,1));   % approximation of accelerometer measurements
+    a_B = -R(:,:,i-1)' * (g .* e3);  % + (std_dev_acc * randn(3,1));   % approximation of accelerometer measurements
     %a_B = acc(:,i-1);
     u_B = -a_B./g;
-    m_B_norm = m_B(:,i-1)/norm(m_I);
+    m_B_norm = m_B(:,i-1)/norm_mI;
 
     u_B_pred = R_pred(:,:,i-1)' * u_I;
     m_B_norm_pred = R_pred(:,:,i-1)' * m_I_norm;
@@ -121,10 +123,10 @@ for i = 2 : (numSamples+1)
             0                   1   0;
             -sin(new_pitch)     0   cos(new_pitch)];    % rotation around y axis
     Rx = [  1       0                   0;
-            0       cos(new_roll)       sin(new_roll);
-            0       -sin(new_roll)      cos(new_roll)];     % rotation around x axis     
-    %R_pred(:,:,i) = Rz*Ry*Rx; % composition from left to right: rotation matrix from body frame to navigation frame
-    R_pred(:,:,i) = Rx' * Ry' * Rz';
+            0       cos(new_roll)       -sin(new_roll);
+            0       sin(new_roll)      cos(new_roll)];     % rotation around x axis     
+    R_pred(:,:,i) = Rz*Ry*Rx; % composition from left to right: rotation matrix from body frame to navigation frame
+    %R_pred(:,:,i) = Rx' * Ry' * Rz';
 
     sigmaR(:,i) = sigma_R;
     sigmaB(:,i) = sigma_b;

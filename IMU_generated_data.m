@@ -5,8 +5,8 @@ clc
 %% Trajectory generation
 % The drone makes a vertical take off and moves with small accelerations
 
-selectTraj = 2;
-selectBodyRS = 2;   % 1 is for ENU, 2 is for NWU, 3 is for 45° rotation
+selectTraj = 3;
+selectBodyRS = 1;   % 1 is for ENU, 2 is for NWU, 3 is for 45° rotation, 4 is for NED
 fprintf('Selected trajectory: %d \n', selectTraj)
 fprintf('Selected body reference system: %d \n', selectBodyRS)
 
@@ -191,6 +191,7 @@ end
 %% Definition of kinematicTrajectory object
 initPosition = [0,0,0]; % at time t=0 body frame and navigation frame overlap
 initVel = [0,0,0];  % at time t=0 the drone is stationary
+dt = 1/fs;
 
 if selectBodyRS == 1
     % We assume that the body reference system is ENU (east-north-up)
@@ -215,6 +216,10 @@ elseif selectBodyRS == 3
     yaw = pi/4;
     pitch = 0;
     roll = pi;
+elseif selectBodyRS == 4
+    yaw = 0;
+    pitch = 0;
+    roll = 0;
 end
 
 % Compute rotation matrix from navigation reference system to body
@@ -226,11 +231,11 @@ Ry = [  cos(pitch)  0   sin(pitch);
         0           1   0;
         -sin(pitch) 0   cos(pitch)];    % rotation around y axis
 Rx = [  1   0           0;
-        0   cos(roll)   sin(roll);
-        0   -sin(roll)  cos(roll)];     % rotation around x axis  
+        0   cos(roll)   -sin(roll);
+        0   sin(roll)   cos(roll)];     % rotation around x axis  
 
-%R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from navigation frame to body frame
-R = Rx' * Ry' * Rz';    % composition from right to left: rotation matrix from navigation frame to body frame
+R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from navigation frame to body frame
+%R = Rx' * Ry' * Rz';    % composition from right to left: rotation matrix from navigation frame to body frame
 initOrientation = R;
 
 traj = kinematicTrajectory('SampleRate',fs,...
@@ -328,9 +333,9 @@ IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
 noiseDensity = 1e-07;   % gyro white noise drift
 %noiseDensity = 1e-07;
 %constantBias = [0.01, 0.03, 0.05]; % gyro constant bias 
-% constantBias = [1e-03, 3e-03, 5e-03];
+constantBias = [1e-03, 3e-03, 5e-03];
 %constantBias = [1e-05, 3e-05, 5e-05];
-constantBias = [1e-06, 3e-06, 5e-06];
+%constantBias = [1e-06, 3e-06, 5e-06];
 IMU_Noise.Gyroscope.NoiseDensity = noiseDensity;   % add white noise drift for gyro measurements
 IMU_Noise.Gyroscope.ConstantBias = constantBias;    % add a constant bias for gyro measurements (https://www.ericcointernational.com/inertial-measurement-units)
 
@@ -362,6 +367,40 @@ xlabel('Time (s)')
 ylabel('Magnetic Field (uT)')
 grid on
 
+%% Compute rotation matrix
+yaw = 0;
+pitch = 0;
+roll = 0;
+orientationNAV = zeros(3,3,totalNumSamples);
+orientationBODY = zeros(3,3,totalNumSamples);
+for i = 1 : totalNumSamples
+    yaw_dot = gyroReading(i,3);
+    new_yaw = yaw + yaw_dot*dt;
+    yaw = new_yaw;
+
+    pitch_dot = gyroReading(i,2);
+    new_pitch = pitch + pitch_dot*dt;
+    pitch = new_pitch;
+
+    roll_dot = gyroReading(i,1);
+    new_roll = roll + roll_dot*dt;
+    roll = new_roll;
+
+    Rz = [  cos(yaw)    -sin(yaw)   0;
+        sin(yaw)    cos(yaw)    0;
+        0           0           1];     % rotation around z axis
+    Ry = [  cos(new_pitch)  0   sin(new_pitch);
+        0           1   0;
+        -sin(new_pitch) 0   cos(new_pitch)];    % rotation around y axis
+    Rx = [  1   0           0;
+        0   cos(new_roll)   -sin(new_roll);
+        0   sin(new_roll)   cos(new_roll)];     % rotation around x axis
+
+    orientationNAV(:,:,i) = Rz*Ry*Rx;    % sarebbe la Cnb come l'articolo => Cbn = Cnb'
+    orientationBODY(:,:,i) = orientationNAV(:,:,i)';
+end
+
+
 %% Load data in dataset
 log_vars = [];
 log_vars.accel = accelReading;
@@ -371,9 +410,9 @@ log_vars.accelN = accelReadingN;
 log_vars.gyroN = gyroReadingN;
 log_vars.magN = magReadingN;
 log_vars.initOrientation = initOrientation';
-for i=1 : totalNumSamples
-    orientationBODY(:,:,i) = orientationNED(:,:,i)';
-end
+% for i=1 : totalNumSamples
+%     orientationBODY(:,:,i) = orientationNED(:,:,i)';
+% end
 log_vars.orientation = orientationBODY;
 log_vars.frequency = fs;
 log_vars.numSamples = totalNumSamples;

@@ -87,9 +87,9 @@ for i = 1 : (numSamples)
 %             new_roll = -new_roll;
 %         end
 %     end
-    if round(new_roll,2) == -round(roll,2)
-        new_roll = - new_roll;
-    end
+%     if round(new_roll,2) == -round(roll,2)
+%         new_roll = - new_roll;
+%     end
     true_attitude_angles(i+1,1) = new_roll;
     roll = new_roll;
 
@@ -244,9 +244,9 @@ for i = 2 : (numSamples+1)
 
     roll_dot = angvel_x_N(i-1) + sin(roll)*tan(pitch)*angvel_y_N(i-1) + cos(roll)*tan(pitch)*angvel_z_N(i-1);
     new_roll = wrapToPi(attitude_angles_N(i-1,1) + roll_dot*dt);
-    if round(new_roll,2) == -round(roll,2)
-        new_roll = - new_roll;
-    end
+%     if round(new_roll,2) == -round(roll,2)
+%         new_roll = - new_roll;
+%     end
     attitude_angles_N(i,1) = new_roll;
 
     pitch_dot = cos(roll)*angvel_y_N(i-1) - sin(roll)*angvel_z_N(i-1);
