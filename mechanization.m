@@ -42,20 +42,12 @@ mag_z_N = log_vars.magN(:,3);
 % Angles:   roll -> rotation around X
 %           pitch -> rotation around Y
 %           yaw -> rotation around Z
-% Because of pitch angle is 180, we need to use the following expressions:
-% roll = atan2(-R0(3,2),-R0(3,3))
-% pitch = atan2(-R0(3,1),-sqrt((R0(3,2))^2,(R0(3,3))^2))
-% yaw = atan2(-R0(2,1),-R0(1,1))
-% Alternatively we can use the article's equations:
+% Euler angles from rotation matrix:
 % roll = atan2(R(3,2),R(3,3))
 % pitch = -asin(R(3,1))
 % yaw = atan2(R(2,1),R(1,1))
 
 % Initial orientation of body frame with respect to navigation frame:
-% roll_0 = atan2(-R0(3,2),-R0(3,3));
-% pitch_0 = atan2(-R0(3,1),-sqrt((R0(3,2))^2 + (R0(3,3))^2));
-% yaw_0 = atan2(-R0(2,1),-R0(1,1));
-
 roll_0 = atan2(R0(3,2),R0(3,3));
 pitch_0 = -asin(R0(3,1));
 yaw_0 = atan2(R0(2,1),R0(1,1));

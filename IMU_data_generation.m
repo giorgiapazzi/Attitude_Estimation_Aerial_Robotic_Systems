@@ -162,28 +162,35 @@ elseif selectBodyRS == 2
     roll = 0;
 elseif selectBodyRS == 3
     % We assume that the body reference system coincides with the
-    % navigation frame rotated with a yaw angle
-    yaw = deg2rad(50);
+    % navigation frame rotated with a larger yaw angle
+    yaw = wrapToPi(deg2rad(135));
     pitch = 0;
     roll = 0;
 end
 
+fprintf('Yaw:   %f      Pitch:  %f      Roll:   %f \n',yaw,pitch,roll);
+
 
 % Compute rotation matrix from navigation reference system to body
 % reference system (composition in local axes)
-Rz = [  cos(yaw)    -sin(yaw)   0;
-        sin(yaw)    cos(yaw)    0;
-        0           0           1];     % rotation around z axis
-Ry = [  cos(pitch)  0   sin(pitch);
-        0           1   0;
-        -sin(pitch) 0   cos(pitch)];    % rotation around y axis
-Rx = [  1   0           0;
-        0   cos(roll)   -sin(roll);
-        0   sin(roll)   cos(roll)];     % rotation around x axis  
+% Rz = [  cos(yaw)    -sin(yaw)   0;
+%         sin(yaw)    cos(yaw)    0;
+%         0           0           1];     % rotation around z axis
+% Ry = [  cos(pitch)  0   sin(pitch);
+%         0           1   0;
+%         -sin(pitch) 0   cos(pitch)];    % rotation around y axis
+% Rx = [  1   0           0;
+%         0   cos(roll)   -sin(roll);
+%         0   sin(roll)   cos(roll)];     % rotation around x axis  
+% 
+% R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from navigation frame to body frame
+% %R = Rx' * Ry' * Rz';    % composition from right to left: rotation matrix from navigation frame to body frame
+% initOrientation = R;
 
-R = Rz*Ry*Rx;  % composition from left to right: rotation matrix from navigation frame to body frame
-%R = Rx' * Ry' * Rz';    % composition from right to left: rotation matrix from navigation frame to body frame
-initOrientation = R;
+% Compute quaternion rotation from navigation reference system to body
+% reference system
+E = [yaw,pitch,roll];
+initOrientation = quaternion(E,'euler','ZYX','frame');
 
 traj = kinematicTrajectory('SampleRate',fs,...
     'Velocity',initVel,...
@@ -277,10 +284,10 @@ IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
 %     'AccelerationBias',0.00017809, ...
 %     'ConstantBias',[0.3491,0.5,0]);
 
-noiseDensity = 1e-06;   % gyro white noise drift [(rad/s)/sqrt(Hz)]
+noiseDensity = 1e-05;   % gyro white noise drift [(rad/s)/sqrt(Hz)]
 %noiseDensity = 1e-07;
-%constantBias = [0.01, 0.03, 0.05]; % gyro constant bias [rad/s]
-constantBias = [1e-04, 3e-04, 5e-04];
+constantBias = [0.01, 0.005, -0.01]; % gyro constant bias [rad/s]
+%constantBias = [1e-04, 3e-04, 5e-04];
 %constantBias = [1e-05, 3e-05, 5e-05];
 %constantBias = [1e-06, 3e-06, 5e-06];
 IMU_Noise.Gyroscope.NoiseDensity = noiseDensity;   % add white noise drift for gyro measurements
@@ -315,10 +322,19 @@ ylabel('Magnetic Field (uT)')
 grid on
 
 %% Compute rotation matrix
-yaw = 0;
-pitch = 0;
-roll = 0;
-orientationNAV = zeros(3,3,totalNumSamples);
+Rz = [  cos(yaw)    -sin(yaw)   0;
+            sin(yaw)    cos(yaw)    0;
+            0           0           1];     % rotation around z axis
+Ry = [  cos(pitch)  0   sin(pitch);
+        0               1   0;
+        -sin(pitch) 0   cos(pitch)];    % rotation around y axis
+Rx = [  1   0               0;
+        0   cos(roll)   -sin(roll);
+        0   sin(roll)   cos(roll)];     % rotation around x axis
+
+R0 = Rz*Ry*Rx;  % rotation matrix from body frame to navigation frame (Cbn) at initial time (t=0)
+
+% Rotation matrix (Cbn) for t>0
 orientationBODY = zeros(3,3,totalNumSamples);
 for i = 1 : totalNumSamples
     yaw_dot = gyroReading(i,3);
@@ -333,8 +349,8 @@ for i = 1 : totalNumSamples
     new_roll = roll + roll_dot*dt;
     roll = new_roll;
 
-    Rz = [  cos(yaw)    -sin(yaw)   0;
-            sin(yaw)    cos(yaw)    0;
+    Rz = [  cos(new_yaw)    -sin(new_yaw)   0;
+            sin(new_yaw)    cos(new_yaw)    0;
             0           0           1];     % rotation around z axis
     Ry = [  cos(new_pitch)  0   sin(new_pitch);
             0               1   0;
@@ -343,8 +359,7 @@ for i = 1 : totalNumSamples
             0   cos(new_roll)   -sin(new_roll);
             0   sin(new_roll)   cos(new_roll)];     % rotation around x axis
 
-    orientationNAV(:,:,i) = Rz*Ry*Rx;    % Cnb computed as in the article => Cbn = Cnb'
-    orientationBODY(:,:,i) = orientationNAV(:,:,i)';
+    orientationBODY(:,:,i) = Rz*Ry*Rx;  % rotation matrix from body frame to navigation frame (Cbn)
 end
 
 
@@ -356,7 +371,7 @@ log_vars.mag = magReading;
 log_vars.accelN = accelReadingN;
 log_vars.gyroN = gyroReadingN;
 log_vars.magN = magReadingN;
-log_vars.initOrientation = initOrientation';
+log_vars.initOrientation = R0;
 log_vars.orientation = orientationBODY;
 log_vars.frequency = fs;
 log_vars.numSamples = totalNumSamples;
