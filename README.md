@@ -13,5 +13,5 @@ To compute attitude estimation with Explicit Complementary Filter run the "expli
 ## References
 <a id="1">[1]</a> 
 Minh-Duc Hua, Guillaume Ducard, Tarek Hamel, Robert Mahony. Introduction to Nonlinear Attitude
-Estimation for Aerial Robotic Systems. Aerospace Lab, 2014, pp.AL08-04. ￿10.12762/2014.AL08-04 .
+Estimation for Aerial Robotic Systems. Aerospace Lab, 2014, pp.AL08-04. 10.12762/2014.AL08-04 .
 hal-01113138
