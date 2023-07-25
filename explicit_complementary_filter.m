@@ -9,6 +9,7 @@ numSamples = log_vars.numSamples;
 trajectory = log_vars.trajectory;
 frame = log_vars.frame;
 m_B = log_vars.mag';    % magnetometer measurements 
+acc_B = log_vars.accel';    % accelerometer measurements
 angvel_x = log_vars.gyroN(:,1); % gyro measurements along x-axis
 angvel_y = log_vars.gyroN(:,2); % gyro measurements along y-axis
 angvel_z = log_vars.gyroN(:,3); % gyro measurements along z-axis
@@ -34,18 +35,21 @@ m_I_norm = m_I / norm_mI;  % normalized magnetic field in navigation frame
 
 %% Initialization
 % Initial orientation of body frame with respect to navigation frame:
-std_dev_roll = deg2rad(5);  % standard deviation for initial roll angle
-std_dev_pitch = deg2rad(3);  % standard deviation for initial pitch angle
-std_dev_yaw = deg2rad(1);  % standard deviation for initial yaw angle
-% std_dev_roll = deg2rad(-45);  % standard deviation for initial roll angle
-% std_dev_pitch = deg2rad(45);  % standard deviation for initial pitch angle
-% std_dev_yaw = deg2rad(90);  % standard deviation for initial yaw angle
+% std_dev_roll = deg2rad(0);  % standard deviation for initial roll angle
+% std_dev_pitch = deg2rad(0);  % standard deviation for initial pitch angle
+% std_dev_yaw = deg2rad(0);  % standard deviation for initial yaw angle
+% std_dev_roll = deg2rad(1);  % standard deviation for initial roll angle
+% std_dev_pitch = deg2rad(3);  % standard deviation for initial pitch angle
+% std_dev_yaw = deg2rad(5);  % standard deviation for initial yaw angle
+std_dev_roll = deg2rad(-30);  % standard deviation for initial roll angle
+std_dev_pitch = deg2rad(30);  % standard deviation for initial pitch angle
+std_dev_yaw = deg2rad(90);  % standard deviation for initial yaw angle
 
 roll_0 = atan2(R0(3,2),R0(3,3)) + std_dev_roll * randn(1,1);
 pitch_0 = -asin(R0(3,1)) + std_dev_pitch * randn(1,1);
 yaw_0 = atan2(R0(2,1),R0(1,1)) + std_dev_yaw * randn(1,1);
 
-fprintf('Initial attitude valeues: roll: %f  pitch: %f  yaw: %f \n', roll_0,pitch_0,yaw_0);
+fprintf('Initial attitude values: roll: %g  pitch: %g  yaw: %g \n', roll_0,pitch_0,yaw_0);
 
 attitude_angles = zeros(numSamples+1,3);
 attitude_angles(1,:)= [roll_0,pitch_0,yaw_0];
@@ -58,7 +62,7 @@ R_pred(:,:,1) = R0;
 %b_omega = constantBias' + std_dev_b * randn(3,1);  % initial constant gyro bias with uncertainty
 b_omega = [0;0;0];
 
-std_dev_acc = 1e-5; % standard deviation for white noise for acceleration
+std_dev_acc = 1e-3; % standard deviation for white noise for acceleration
 
 sigmaR = zeros(3,1);
 sigmaB = zeros(3,1);
@@ -74,14 +78,18 @@ estimatedAngVel = zeros(3,1);
 k1 = 6.371;
 k2 = 1.274;
 kb = k1/32;
+% k1 = 2.9;
+% k2 = 1.2;
+% kb = 0.1991;
 
-fprintf('Selected trajectory: %d    Selected frame: %d      k1 = %f     k2 = %f     kb = %f \n',trajectory,frame,k1,k2,kb)
+fprintf('Selected trajectory: %d    Selected frame: %d      k1 = %g     k2 = %g     kb = %g \n',trajectory,frame,k1,k2,kb)
 
 
 %% Explicit complementary filter
 for i = 2 : (numSamples+1)
     % Measured acceleration and magnetic field
-    a_B = -R(:,:,i-1)' * (g .* e3); %+ (std_dev_acc * randn(3,1));   % approximation of accelerometer measurements
+    %a_B = -R(:,:,i-1)' * (g .* e3); % + (std_dev_acc * randn(3,1));   % approximation of accelerometer measurements
+    a_B = -acc_B(:,i-1) + (std_dev_acc * randn(3,1));
     u_B = -a_B./g;
     m_B_norm = m_B(:,i-1)/norm_mI;
 
