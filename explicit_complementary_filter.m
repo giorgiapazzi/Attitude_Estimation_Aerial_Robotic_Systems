@@ -35,15 +35,15 @@ m_I_norm = m_I / norm_mI;  % normalized magnetic field in navigation frame
 
 %% Initialization
 % Initial orientation of body frame with respect to navigation frame:
-% std_dev_roll = deg2rad(0);  % standard deviation for initial roll angle
-% std_dev_pitch = deg2rad(0);  % standard deviation for initial pitch angle
-% std_dev_yaw = deg2rad(0);  % standard deviation for initial yaw angle
+std_dev_roll = deg2rad(0);  % standard deviation for initial roll angle
+std_dev_pitch = deg2rad(0);  % standard deviation for initial pitch angle
+std_dev_yaw = deg2rad(0);  % standard deviation for initial yaw angle
 % std_dev_roll = deg2rad(1);  % standard deviation for initial roll angle
 % std_dev_pitch = deg2rad(3);  % standard deviation for initial pitch angle
 % std_dev_yaw = deg2rad(5);  % standard deviation for initial yaw angle
-std_dev_roll = deg2rad(-30);  % standard deviation for initial roll angle
-std_dev_pitch = deg2rad(30);  % standard deviation for initial pitch angle
-std_dev_yaw = deg2rad(90);  % standard deviation for initial yaw angle
+% std_dev_roll = deg2rad(-15);  % standard deviation for initial roll angle
+% std_dev_pitch = deg2rad(10);  % standard deviation for initial pitch angle
+% std_dev_yaw = deg2rad(60);  % standard deviation for initial yaw angle
 
 roll_0 = atan2(R0(3,2),R0(3,3)) + std_dev_roll * randn(1,1);
 pitch_0 = -asin(R0(3,1)) + std_dev_pitch * randn(1,1);
@@ -89,7 +89,7 @@ fprintf('Selected trajectory: %d    Selected frame: %d      k1 = %g     k2 = %g 
 for i = 2 : (numSamples+1)
     % Measured acceleration and magnetic field
     %a_B = -R(:,:,i-1)' * (g .* e3); % + (std_dev_acc * randn(3,1));   % approximation of accelerometer measurements
-    a_B = -acc_B(:,i-1) + (std_dev_acc * randn(3,1));
+    a_B = -acc_B(:,i-1);
     u_B = -a_B./g;
     m_B_norm = m_B(:,i-1)/norm_mI;
 

@@ -6,7 +6,7 @@ clc
 %% Trajectory generation
 % The drone makes a vertical take off and moves with small accelerations
 
-selectTraj = 1;
+selectTraj = 3;
 selectBodyRS = 1;   % 1 is for NED, 2 is for NED with small yaw, 3 is for NED with bigger yaw
 fprintf('Selected trajectory: %d \n', selectTraj)
 fprintf('Selected body reference system: %d \n', selectBodyRS)
@@ -216,11 +216,13 @@ hold on
 plot(t,position(:,2))
 hold on
 plot(t,position(:,3))
+xlim([0 73])
 xlabel('Time (s)')
 ylabel('Space (m)')
 title('Position')
 legend('X-axis','Y-axis','Z-axis')
 grid on
+
 
 %% Generate IMU data without noise
 % Create an imuSensor object with ideal accelerometer, magnetometer and gyroscope.
@@ -231,27 +233,56 @@ IMU = imuSensor('accel-gyro-mag','SampleRate',fs);
 t = (0:(totalNumSamples-1))/IMU.SampleRate;
 
 figure(3)
-subplot(3,1,1)
 plot(t,accelReading)
 legend('X-axis','Y-axis','Z-axis')
 title('Accelerometer Readings')
 ylabel('Acceleration [m/s^2]')
+xlim([0 73])
 grid on
 
-subplot(3,1,2)
+figure(4)
 plot(t,gyroReading)
 legend('X-axis','Y-axis','Z-axis')
 title('Gyroscope Readings')
 ylabel('Angular Velocity (rad/s)')
+xlim([0 73])
+ylim([-0.7 0.2])
 grid on
 
-subplot(3,1,3)
+figure(5)
 plot(t,magReading)
 legend('X-axis','Y-axis','Z-axis')
 title('Magnetometer Readings')
 xlabel('Time (s)')
 ylabel('Magnetic Field (uT)')
+xlim([0 73])
 grid on
+
+% figure(3)
+% subplot(3,1,1)
+% plot(t,accelReading)
+% legend('X-axis','Y-axis','Z-axis')
+% title('Accelerometer Readings')
+% ylabel('Acceleration [m/s^2]')
+% xlim([0 73])
+% grid on
+
+% subplot(3,1,2)
+% plot(t,gyroReading)
+% legend('X-axis','Y-axis','Z-axis')
+% title('Gyroscope Readings')
+% ylabel('Angular Velocity (rad/s)')
+% xlim([0 73])
+% grid on
+
+% subplot(3,1,3)
+% plot(t,magReading)
+% legend('X-axis','Y-axis','Z-axis')
+% title('Magnetometer Readings')
+% xlabel('Time (s)')
+% ylabel('Magnetic Field (uT)')
+% xlim([0 73])
+% grid on
 
 
 %% Generate IMU data with noise
@@ -284,7 +315,7 @@ IMU_Noise = imuSensor('accel-gyro-mag','SampleRate',fs);
 %     'AccelerationBias',0.00017809, ...
 %     'ConstantBias',[0.3491,0.5,0]);
 
-noiseDensity = 1e-05;   % gyro white noise drift [(rad/s)/sqrt(Hz)]
+noiseDensity = 1e-04;   % gyro white noise drift [(rad/s)/sqrt(Hz)]
 %noiseDensity = 1e-07;
 constantBias = [0.01, 0.005, -0.01]; % gyro constant bias [rad/s]
 %constantBias = [1e-04, 3e-04, 5e-04];
@@ -292,34 +323,62 @@ constantBias = [0.01, 0.005, -0.01]; % gyro constant bias [rad/s]
 %constantBias = [1e-06, 3e-06, 5e-06];
 IMU_Noise.Gyroscope.NoiseDensity = noiseDensity;   % add white noise drift for gyro measurements
 IMU_Noise.Gyroscope.ConstantBias = constantBias;    % add a constant bias for gyro measurements (https://www.ericcointernational.com/inertial-measurement-units)
+IMU_Noise.Accelerometer.NoiseDensity = 3.924e-05;
+IMU_Noise.Accelerometer.ConstantBias = 1e-05;
+IMU_Noise.Magnetometer.NoiseDensity = [0.1 0.01 0.03]/sqrt(100);
 
 [accelReadingN,gyroReadingN,magReadingN] = IMU_Noise(-accNED,angVelNED,orientationNED);
 
 % Plot the accelerometer readings, gyroscope readings, and magnetometer readings.
 t = (0:(totalNumSamples-1))/IMU_Noise.SampleRate;
 
-figure(4)
-subplot(3,1,1)
+figure(6)
 plot(t,accelReadingN)
 legend('X-axis','Y-axis','Z-axis')
 title('Accelerometer Readings With Noise')
 ylabel('Acceleration (m/s^2)')
+xlim([0 73])
 grid on
 
-subplot(3,1,2)
+figure(7)
 plot(t,gyroReadingN)
 legend('X-axis','Y-axis','Z-axis')
 title('Gyroscope Readings With Noise')
 ylabel('Angular Velocity (rad/s)')
+xlim([0 73])
 grid on
 
-subplot(3,1,3)
+figure(8)
 plot(t,magReadingN)
 legend('X-axis','Y-axis','Z-axis')
 title('Magnetometer Readings With Noise')
 xlabel('Time (s)')
 ylabel('Magnetic Field (uT)')
+xlim([0 73])
 grid on
+
+% figure(4)
+% subplot(3,1,1)
+% plot(t,accelReadingN)
+% legend('X-axis','Y-axis','Z-axis')
+% title('Accelerometer Readings With Noise')
+% ylabel('Acceleration (m/s^2)')
+% grid on
+% 
+% subplot(3,1,2)
+% plot(t,gyroReadingN)
+% legend('X-axis','Y-axis','Z-axis')
+% title('Gyroscope Readings With Noise')
+% ylabel('Angular Velocity (rad/s)')
+% grid on
+% 
+% subplot(3,1,3)
+% plot(t,magReadingN)
+% legend('X-axis','Y-axis','Z-axis')
+% title('Magnetometer Readings With Noise')
+% xlabel('Time (s)')
+% ylabel('Magnetic Field (uT)')
+% grid on
 
 %% Compute rotation matrix
 Rz = [  cos(yaw)    -sin(yaw)   0;

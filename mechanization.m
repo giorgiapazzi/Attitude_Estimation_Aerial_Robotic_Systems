@@ -128,15 +128,17 @@ end
 t = (0:(numSamples))/fs;  % time when measurements are provided
 
 figure(1)
-plot(t,true_attitude_angles(:,1)')
+plot(t,rad2deg(true_attitude_angles(:,1)'))
 hold on
-plot(t,true_attitude_angles(:,2)')
+plot(t,rad2deg(true_attitude_angles(:,2)'))
 hold on
-plot(t,true_attitude_angles(:,3)')
+plot(t,rad2deg(true_attitude_angles(:,3)'))
 legend('Roll','Pitch','Yaw')
 title('Attitude estimation with true mechanization')
 xlabel('t [s]')
-ylabel('Roll-pitch-yaw angles [rad]')
+ylabel('Roll-pitch-yaw angles [deg]')
+xlim([0 73])
+%ylim([-95 5])
 grid on
 
 
@@ -209,15 +211,17 @@ end
 t = (0:(numSamples))/fs;  % time when measurements are provided
 
 figure(2)
-plot(t,attitude_angles(:,1)')
+plot(t,rad2deg(attitude_angles(:,1)'))
 hold on
-plot(t,attitude_angles(:,2)')
+plot(t,rad2deg(attitude_angles(:,2)'))
 hold on
-plot(t,attitude_angles(:,3)')
+plot(t,rad2deg(attitude_angles(:,3)'))
 legend('Roll','Pitch','Yaw')
 title('Attitude estimation with euler angles kinematics')
 xlabel('t [s]')
-ylabel('Roll-pitch-yaw angles [rad]')
+ylabel('Roll-pitch-yaw angles [deg]')
+xlim([0 73])
+%ylim([-95 5])
 grid on
 
 %% Euler angles kinematics with noise
@@ -260,15 +264,16 @@ end
 t = (0:(numSamples))/fs;  % time when measurements are provided
 
 figure(3)
-plot(t,attitude_angles_N(:,1)')
+plot(t,rad2deg(attitude_angles_N(:,1)'))
 hold on
-plot(t,attitude_angles_N(:,2)')
+plot(t,rad2deg(attitude_angles_N(:,2)'))
 hold on
-plot(t,attitude_angles_N(:,3)')
+plot(t,rad2deg(attitude_angles_N(:,3)'))
 legend('Roll','Pitch','Yaw')
 title('Attitude estimation with gyro bias')
 xlabel('t [s]')
-ylabel('Roll-pitch-yaw angles [rad]')
+ylabel('Roll-pitch-yaw angles [deg]')
+xlim([0 73])
 grid on
 
 
@@ -282,36 +287,40 @@ end
 t = (0:(numSamples))/fs;  % time when measurements are provided
 
 figure(4)
-plot(t,error_roll)
+plot(t,rad2deg(error_roll))
 hold on
-plot(t,error_pitch)
+plot(t,rad2deg(error_pitch))
 hold on
-plot(t,error_yaw)
+plot(t,rad2deg(error_yaw))
 legend('Roll Error','Pitch Error','Yaw Error')
 title('Attitude estimation error')
 xlabel('t [s]')
-ylabel('Roll-pitch-yaw angles error [rad]')
+ylabel('Roll-pitch-yaw angles error [deg]')
+xlim([0 73])
 grid on
 
 figure(5)
-plot(t,error_roll)
+plot(t,rad2deg(error_roll))
 title('Roll estimation error')
 xlabel('t [s]')
-ylabel('Roll angle error [rad]')
+ylabel('Roll angle error [deg]')
+xlim([0 73])
 grid on
 
 figure(6)
-plot(t,error_pitch)
+plot(t,rad2deg(error_pitch))
 title('Pitch estimation error')
 xlabel('t [s]')
-ylabel('Pitch angle error [rad]')
+ylabel('Pitch angle error [deg]')
+xlim([0 73])
 grid on
 
 figure(7)
-plot(t,error_yaw)
+plot(t,rad2deg(error_yaw))
 title('Yaw estimation error')
 xlabel('t [s]')
-ylabel('Yaw angle error [rad]')
+ylabel('Yaw angle error [deg]')
+xlim([0 73])
 grid on
 
 
