@@ -10,6 +10,8 @@ To create the simulated IMU measurements run the "IMU_data_generation.m" script.
 To compute the attitude estimation from rotation matrix and from Euler's angle kinematics run the "mechanization.m" script.
 To compute attitude estimation with Explicit Complementary Filter run the "explicit_complementary_filter.m" script.
 
+To test the filter on real data, first load the dataset executing the "load_data.m" file. Then execute the "filter_test_real_data.m" file to execute the filter and plot the results.
+
 ## References
 <a id="1">[1]</a> 
 Minh-Duc Hua, Guillaume Ducard, Tarek Hamel, Robert Mahony. Introduction to Nonlinear Attitude
