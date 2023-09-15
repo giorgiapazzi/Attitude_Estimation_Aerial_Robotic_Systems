@@ -187,7 +187,7 @@ plot(t,rad2deg(theta_pred))
 hold on
 plot(t,rad2deg(psi_pred))
 legend('Roll','Pitch','Yaw')
-title('Attitude estimation in VICON frame')
+title('Attitude estimation in IMU frame rotated in VICON frame')
 xlabel('t [s]')
 xlim([0,size(t,2)/fs])
 ylabel('Roll-pitch-yaw angles [deg]')

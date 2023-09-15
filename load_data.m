@@ -13,9 +13,17 @@ load("all_data_in_ws.mat")
 % plot(ts_IMU_VICON.Time, ts_IMU_VICON.Data*180/pi)
 % grid on
 % 
-% figure;
-% plot(ts_VICON_wand.Time, ts_VICON_wand.Data*180/pi)
-% grid on
+figure;
+plot(ts_VICON_wand.Time, ts_VICON_wand.Data*180/pi)
+legend('Roll','Pitch','Yaw')
+title('Real attitude in VICON frame')
+xlabel('t [s]')
+ylabel('Roll-pitch-yaw angles [deg]')
+grid on
+xlim([0,size(ts_VICON_wand.Time,1)/10])
+newcolors = ["#0B0" "#00F" "#A0F"];
+colororder(newcolors)
+
 % % 
 % figure;
 % plot(ts_VICON_wand.Time, ts_VICON_wand.Data*180/pi);
@@ -42,6 +50,7 @@ numsamples = size(acc_IMU,1);   % total number of samples
 % first Rz(90), then Ry(180) 
 roll = 0;
 pitch = pi;
+% yaw = pi/2;
 yaw = pi/2 - deg2rad(10);
 Rotx = [1 0 0; 0 cos(roll) sin(roll); 0 -sin(roll) cos(roll)];
 Roty = [cos(pitch) 0 -sin(pitch); 0 1 0; sin(pitch) 0 cos(pitch)];
