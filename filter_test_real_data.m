@@ -15,11 +15,16 @@ angvel_z = real_data_IMU.gyro(:,3); % gyro measurements along z-axis
 fs = 10;    % IMU sensor frequency
 dt = 1/fs;
 
+C_IMU_VICON = real_data_IMU.C_IMU_VICON;
+
 R0 = eye(3,3);
 g = 9.81;   % gravity acceleration
-e3 = [0;0;1];
+% e3 = [0;0;1]; % in NED frame
+e3 = [0;0;-1];
 u_I = e3;
-m_I = [27.5550;-2.4169;-16.08049];  % magnetic field in navigation frame 
+% m_I = [27.5550;-2.4169;-16.08049];  % magnetic field in NED navigation frame 
+% m_I = real_data_IMU.mag_VICON;
+m_I = real_data_IMU.mag_IMU;
 norm_mI = norm(m_I);
 m_I_norm = m_I / norm_mI;  % normalized magnetic field in navigation frame
 
@@ -73,7 +78,7 @@ kb = k1/32;
 %% Explicit complementary filter
 for i = 2 : (numSamples+1)
     % Measured acceleration and magnetic field
-    a_B = -acc_B(:,i-1);
+    a_B = acc_B(:,i-1);
     u_B = -a_B./g;
     m_B_norm = m_B(:,i-1)/norm_mI;
 
@@ -134,6 +139,18 @@ for i = 2 : (numSamples+1)
 end
 
 
+%% Convert attitude estimation from IMU frame to VICON frame
+for i = 1 : size(R_pred,3)
+    R_pred_VICON(:,:,i) = C_IMU_VICON * R_pred(:,:,i);
+end
+
+for i = 1 : size(R_pred_VICON,3)
+    phi_pred(i) = atan2(R_pred_VICON(3,2,i),R_pred_VICON(3,3,i));
+    theta_pred(i) = -asin(R_pred_VICON(3,1,i));
+    psi_pred(i) = atan2(R_pred_VICON(2,1,i),R_pred_VICON(1,1,i));
+end
+
+
 %% Plot
 t = (0:(numSamples))/fs;  % time when measurements are provided
 
@@ -144,27 +161,34 @@ plot(t,rad2deg(attitude_angles(:,2)'))
 hold on
 plot(t,rad2deg(attitude_angles(:,3)'))
 legend('Roll','Pitch','Yaw')
-title('Attitude estimation')
+title('Attitude estimation in IMU frame')
 xlabel('t [s]')
 xlim([0,size(t,2)/fs])
 ylabel('Roll-pitch-yaw angles [deg]')
 grid on
 
-% for i=1 : (numSamples+1)
-%     error_roll(i) = true_attitude_angles(i,1) - attitude_angles(i,1);
-%     error_pitch(i) = true_attitude_angles(i,2) - attitude_angles(i,2);
-%     error_yaw(i) = true_attitude_angles(i,3) - attitude_angles(i,3);
-% end
-% 
 % figure(2)
-% plot(t,rad2deg(error_roll))
+% plot(t,b_omega(1,:))
 % hold on
-% plot(t,rad2deg(error_pitch))
+% plot(t,b_omega(2,:))
 % hold on
-% plot(t,rad2deg(error_yaw))
-% legend('Roll Error','Pitch Error','Yaw Error')
-% title('Attitude estimation error')
+% plot(t,b_omega(3,:))
+% legend('x-bias','y-bias','z-bias')
+% title('Gyro bias estimation')
 % xlabel('t [s]')
 % xlim([0,size(t,2)/fs])
-% ylabel('Roll-pitch-yaw angles error [deg]')
+% ylabel('Gyro bias [rad/s]')
 % grid on
+
+figure(3)
+plot(t,rad2deg(phi_pred))
+hold on
+plot(t,rad2deg(theta_pred))
+hold on
+plot(t,rad2deg(psi_pred))
+legend('Roll','Pitch','Yaw')
+title('Attitude estimation in VICON frame')
+xlabel('t [s]')
+xlim([0,size(t,2)/fs])
+ylabel('Roll-pitch-yaw angles [deg]')
+grid on
