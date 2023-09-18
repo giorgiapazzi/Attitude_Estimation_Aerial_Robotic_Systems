@@ -1,4 +1,4 @@
-clear all
+%clear all
 close all
 clc
 
@@ -6,11 +6,20 @@ clc
 load('real_data.mat')
 
 numSamples = real_data_IMU.numSamples;
-m_B = real_data_IMU.mag';    % magnetometer measurements 
-acc_B = real_data_IMU.acc';    % accelerometer measurements
-angvel_x = real_data_IMU.gyro(:,1); % gyro measurements along x-axis
-angvel_y = real_data_IMU.gyro(:,2); % gyro measurements along y-axis
-angvel_z = real_data_IMU.gyro(:,3); % gyro measurements along z-axis
+
+% % Data in wand
+m_B = real_data_IMU.mag_wand';    % magnetometer measurements 
+acc_B = real_data_IMU.acc_wand';    % accelerometer measurements
+angvel_x = real_data_IMU.gyro_wand(:,1); % gyro measurements along x-axis
+angvel_y = real_data_IMU.gyro_wand(:,2); % gyro measurements along y-axis
+angvel_z = real_data_IMU.gyro_wand(:,3); % gyro measurements along z-axis
+
+% Data in body
+% m_B = real_data_IMU.mag_imu';    % magnetometer measurements 
+% acc_B = real_data_IMU.acc_imu';    % accelerometer measurements
+% angvel_x = real_data_IMU.gyro_imu(:,1); % gyro measurements along x-axis
+% angvel_y = real_data_IMU.gyro_imu(:,2); % gyro measurements along y-axis
+% angvel_z = real_data_IMU.gyro_imu(:,3); % gyro measurements along z-axis
 
 fs = 10;    % IMU sensor frequency
 dt = 1/fs;
@@ -19,26 +28,19 @@ C_IMU_VICON = real_data_IMU.C_IMU_VICON;
 
 R0 = eye(3,3);
 g = 9.81;   % gravity acceleration
-% e3 = [0;0;1]; % in NED frame
 e3 = [0;0;-1];
 u_I = e3;
-% m_I = [27.5550;-2.4169;-16.08049];  % magnetic field in NED navigation frame 
-% m_I = real_data_IMU.mag_VICON;
-m_I = real_data_IMU.mag_IMU;
+% m_I = real_data_IMU.mag_VICON;  % magnetic field in VICON frame
+m_I = real_data_IMU.mag_IMU;    % magnetic field in IMU frame
 norm_mI = norm(m_I);
 m_I_norm = m_I / norm_mI;  % normalized magnetic field in navigation frame
+
 
 %% Initialization
 % Initial orientation of body frame with respect to navigation frame:
 std_dev_roll = deg2rad(0);  % standard deviation for initial roll angle
 std_dev_pitch = deg2rad(0);  % standard deviation for initial pitch angle
 std_dev_yaw = deg2rad(0);  % standard deviation for initial yaw angle
-% std_dev_roll = deg2rad(1);  % standard deviation for initial roll angle
-% std_dev_pitch = deg2rad(3);  % standard deviation for initial pitch angle
-% std_dev_yaw = deg2rad(5);  % standard deviation for initial yaw angle
-% std_dev_roll = deg2rad(-30);  % standard deviation for initial roll angle
-% std_dev_pitch = deg2rad(30);  % standard deviation for initial pitch angle
-% std_dev_yaw = deg2rad(90);  % standard deviation for initial yaw angle
 
 roll_0 = atan2(R0(3,2),R0(3,3)) + std_dev_roll * randn(1,1);
 pitch_0 = -asin(R0(3,1)) + std_dev_pitch * randn(1,1);
@@ -52,9 +54,6 @@ attitude_angles(1,:)= [roll_0,pitch_0,yaw_0];
 R_pred = zeros(3,3,numSamples+1);
 R_pred(:,:,1) = R0;
 
-% std_dev_b = 1e-6;   % standard deviation for white noise for initial gyro bias
-%b_omega = constantBias';
-%b_omega = constantBias' + std_dev_b * randn(3,1);  % initial constant gyro bias with uncertainty
 b_omega = [0;0;0];
 
 sigmaR = zeros(3,1);
@@ -74,6 +73,7 @@ kb = k1/32;
 % k1 = 2.9;
 % k2 = 1.2;
 % kb = 0.1991;
+
 
 %% Explicit complementary filter
 for i = 2 : (numSamples+1)
@@ -151,10 +151,10 @@ for i = 1 : size(R_pred_VICON,3)
 end
 
 
-%% Plot
+%% Plot estimated values
 t = (0:(numSamples))/fs;  % time when measurements are provided
 
-figure(1)
+figure
 plot(t,rad2deg(attitude_angles(:,1)'))
 hold on
 plot(t,rad2deg(attitude_angles(:,2)'))
@@ -163,24 +163,12 @@ plot(t,rad2deg(attitude_angles(:,3)'))
 legend('Roll','Pitch','Yaw')
 title('Attitude estimation in IMU frame')
 xlabel('t [s]')
+axis tight
 xlim([0,size(t,2)/fs])
 ylabel('Roll-pitch-yaw angles [deg]')
 grid on
 
-% figure(2)
-% plot(t,b_omega(1,:))
-% hold on
-% plot(t,b_omega(2,:))
-% hold on
-% plot(t,b_omega(3,:))
-% legend('x-bias','y-bias','z-bias')
-% title('Gyro bias estimation')
-% xlabel('t [s]')
-% xlim([0,size(t,2)/fs])
-% ylabel('Gyro bias [rad/s]')
-% grid on
-
-figure(3)
+figure
 plot(t,rad2deg(phi_pred))
 hold on
 plot(t,rad2deg(theta_pred))
@@ -192,3 +180,63 @@ xlabel('t [s]')
 xlim([0,size(t,2)/fs])
 ylabel('Roll-pitch-yaw angles [deg]')
 grid on
+
+
+%% Test results magnetic field
+% magnetic field vector rotated from wand to IMU with the estimated
+% rotation matrix (R_wand^IMU)
+% mag_body = real_data_IMU.mag_body;
+% for i = 1 : size(R_pred,3)-1
+%     mag_IMU(i,:) = (R_pred(:,:,i+1)*mag_body(i,:)')';
+% %     mag_IMU(i,:) = (R_pred(:,:,i+1)*m_B(:,i))';   
+% end
+% 
+% % magnetic field vector rotated from imu to IMU with the real rotation
+% % matrix (R_imu^IMU)
+% mag_fromimutoIMU = real_data_IMU.mag_fromimutoIMU;
+% 
+% mean_real = mean(mag_fromimutoIMU);
+% mean_estimated = mean(mag_IMU);
+% 
+% figure
+% plot(mag_IMU)
+% hold on
+% plot(mag_fromimutoIMU)
+% legend('Estimated x', 'Estimated y','Estimated z', 'Real x', 'Real y', 'Real z')
+% title('Magnetometer measurements rotated in IMU frame')
+% axis tight
+
+
+%% Plot real values
+load('plot_real_data.mat')
+
+t = plot_real_data.time;
+real_att_IMUimu = plot_real_data.real_att_IMUimu;
+ts = plot_real_data.ts;
+real_att_VICONwand = plot_real_data.real_att_VICONwand;
+
+
+% Real attitude from IMU to imu
+figure
+plot(t,real_att_IMUimu)
+title('Real attitude from IMU to imu')
+legend('yaw','pitch','roll')
+ylabel('Roll-pitch-yaw angles [deg]')
+xlabel('Time [s]')
+axis tight
+ylim([-190,190])
+newcolors = ["#0B0" "#00F" "#A0F"];
+colororder(newcolors)
+
+
+% Real attitude from VICON to wand
+figure;
+plot(ts,real_att_VICONwand)
+legend('Roll','Pitch','Yaw')
+title('Real attitude in VICON frame')
+xlabel('t [s]')
+ylabel('Roll-pitch-yaw angles [deg]')
+grid on
+axis tight
+newcolors = ["#0B0" "#00F" "#A0F"];
+colororder(newcolors)
